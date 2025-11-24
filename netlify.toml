@@ -2,16 +2,6 @@
   command = "npm run build"
   publish = "dist"
 
-[functions]
-  directory = ".netlify/functions-internal"
-
-# リダイレクト設定
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/entry"
-  status = 200
-
-# 環境変数のプレースホルダー（Netlifyダッシュボードで設定）
 [build.environment]
   NODE_VERSION = "20"
 
@@ -24,12 +14,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.css"
+  for = "/_astro/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
