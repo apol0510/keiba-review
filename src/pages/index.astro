@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteCard from '../components/SiteCard.astro';
+import ReviewCard from '../components/ReviewCard.astro';
+import { getSitesWithStats, getLatestReviews, categoryLabels } from '../lib/airtable';
+
+// データ取得
+const sites = await getSitesWithStats();
+const latestReviews = await getLatestReviews(6);
+
+// カテゴリ別にサイトをグループ化
+const categories = ['nankan', 'chuo', 'chihou'] as const;
+const topSites = sites.slice(0, 10);
+---
+
+<BaseLayout title="トップ">
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      <h1 class="text-3xl md:text-4xl font-bold mb-4">
+        信頼できる競馬予想サイトを見つけよう
+      </h1>
+      <p class="text-lg md:text-xl text-blue-100 mb-8">
+        ユーザーの生の声を集めた口コミプラットフォーム
+      </p>
+      <div class="max-w-xl mx-auto">
+        <form action="/keiba-yosou/" method="get" class="flex gap-2">
+          <input
+            type="text"
+            name="q"
+            placeholder="サイト名で検索..."
+            class="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          <button
+            type="submit"
+            class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            検索
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="bg-white py-8 border-b">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <div class="text-2xl md:text-3xl font-bold text-blue-600">{sites.length}</div>
+          <div class="text-sm text-gray-600">登録サイト</div>
+        </div>
+        <div>
+          <div class="text-2xl md:text-3xl font-bold text-blue-600">
+            {sites.reduce((sum, s) => sum + s.review_count, 0)}
+          </div>
+          <div class="text-sm text-gray-600">口コミ数</div>
+        </div>
+        <div>
+          <div class="text-2xl md:text-3xl font-bold text-blue-600">
+            {categories.length}
+          </div>
+          <div class="text-sm text-gray-600">カテゴリ</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Sites Section -->
+  <section class="py-12">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">人気サイトランキング</h2>
+        <a href="/keiba-yosou/" class="text-blue-600 hover:underline text-sm">
+          すべて見る →
+        </a>
+      </div>
+      {
+        topSites.length > 0 ? (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {topSites.map((site, index) => (
+              <div class="relative">
+                {index < 3 && (
+                  <div
+                    class={`absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold z-10 ${
+                      index === 0
+                        ? 'bg-amber-400'
+                        : index === 1
+                          ? 'bg-gray-400'
+                          : 'bg-amber-700'
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                )}
+                <SiteCard site={site} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-gray-600 text-center py-8">
+            まだサイトが登録されていません
+          </p>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- Latest Reviews Section -->
+  <section class="py-12 bg-gray-100">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">最新の口コミ</h2>
+      {
+        latestReviews.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {latestReviews.map((review) => (
+              <ReviewCard review={review} showSiteName={true} />
+            ))}
+          </div>
+        ) : (
+          <p class="text-gray-600 text-center py-8">
+            まだ口コミがありません
+          </p>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- Category Section -->
+  <section class="py-12">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">カテゴリから探す</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {
+          categories.map((category) => {
+            const categorySites = sites.filter((s) => s.category === category);
+            const reviewCount = categorySites.reduce((sum, s) => sum + s.review_count, 0);
+            return (
+              <a
+                href={`/keiba-yosou/${category}/`}
+                class="block bg-white rounded-lg shadow-md p-6 card-hover"
+              >
+                <div class={`w-12 h-12 rounded-full flex items-center justify-center mb-4 badge-${category}`}>
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">
+                  {categoryLabels[category]}
+                </h3>
+                <p class="text-sm text-gray-600">
+                  {categorySites.length}サイト・{reviewCount}件の口コミ
+                </p>
+              </a>
+            );
+          })
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-12 bg-blue-50">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">
+        あなたの口コミを投稿しませんか？
+      </h2>
+      <p class="text-gray-600 mb-6">
+        実際に利用した競馬予想サイトの感想を共有して、他のユーザーの参考にしましょう
+      </p>
+      <a href="/keiba-yosou/" class="btn-primary inline-block">
+        サイトを探して口コミを投稿する
+      </a>
+    </div>
+  </section>
+</BaseLayout>

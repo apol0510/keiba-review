@@ -1,0 +1,57 @@
+---
+import StarRating from './StarRating.astro';
+import CategoryBadge from './CategoryBadge.astro';
+import type { SiteWithStats } from '../lib/airtable';
+
+interface Props {
+  site: SiteWithStats;
+}
+
+const { site } = Astro.props;
+---
+
+<a
+  href={`/keiba-yosou/${site.slug}/`}
+  class="block bg-white rounded-lg shadow-md overflow-hidden card-hover"
+>
+  <div class="aspect-video bg-gray-100 relative">
+    {
+      site.screenshot_url ? (
+        <img
+          src={site.screenshot_url}
+          alt={`${site.name}のスクリーンショット`}
+          class="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div class="w-full h-full flex items-center justify-center text-gray-400">
+          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+      )
+    }
+    <div class="absolute top-2 left-2">
+      <CategoryBadge category={site.category} size="sm" />
+    </div>
+  </div>
+  <div class="p-4">
+    <h3 class="font-bold text-gray-900 mb-2 line-clamp-1">{site.name}</h3>
+    <div class="flex items-center gap-2 mb-2">
+      <StarRating rating={Math.round(site.average_rating)} size="sm" />
+      <span class="text-sm text-gray-600">
+        {site.average_rating.toFixed(1)} ({site.review_count}件)
+      </span>
+    </div>
+    {
+      site.description && (
+        <p class="text-sm text-gray-600 line-clamp-2">{site.description}</p>
+      )
+    }
+  </div>
+</a>

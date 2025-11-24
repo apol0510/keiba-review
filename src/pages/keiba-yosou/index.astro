@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteCard from '../../components/SiteCard.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
+import { getSitesWithStats, categoryLabels } from '../../lib/airtable';
+
+// クエリパラメータ取得
+const url = new URL(Astro.request.url);
+const searchQuery = url.searchParams.get('q') || '';
+const sortBy = url.searchParams.get('sort') || 'popular';
+
+// データ取得
+let sites = await getSitesWithStats();
+
+// 検索フィルタ
+if (searchQuery) {
+  sites = sites.filter(
+    (site) =>
+      site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+}
+
+// ソート
+switch (sortBy) {
+  case 'newest':
+    sites.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    break;
+  case 'rating':
+    sites.sort((a, b) => b.average_rating - a.average_rating);
+    break;
+  case 'reviews':
+    sites.sort((a, b) => b.review_count - a.review_count);
+    break;
+  default: // popular
+    sites.sort((a, b) => b.review_count - a.review_count);
+}
+
+const breadcrumbItems = [{ label: 'サイト一覧' }];
+---
+
+<BaseLayout
+  title="競馬予想サイト一覧"
+  description="競馬予想サイトの口コミ・評判を一覧で確認。NANKAN、中央競馬、地方競馬など各カテゴリのサイトを比較できます。"
+>
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <Breadcrumb items={breadcrumbItems} />
+
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+      <h1 class="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
+        競馬予想サイト一覧
+        {searchQuery && <span class="text-lg font-normal text-gray-600">「{searchQuery}」の検索結果</span>}
+      </h1>
+      <div class="text-sm text-gray-600">{sites.length}件のサイト</div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-8">
+      <form method="get" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+          <input
+            type="text"
+            name="q"
+            value={searchQuery}
+            placeholder="サイト名で検索..."
+            class="form-input"
+          />
+        </div>
+        <div class="flex gap-2">
+          <select name="sort" class="form-input w-auto">
+            <option value="popular" selected={sortBy === 'popular'}>人気順</option>
+            <option value="rating" selected={sortBy === 'rating'}>評価順</option>
+            <option value="reviews" selected={sortBy === 'reviews'}>口コミ数順</option>
+            <option value="newest" selected={sortBy === 'newest'}>新着順</option>
+          </select>
+          <button type="submit" class="btn-primary">絞り込む</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Category Links -->
+    <div class="flex flex-wrap gap-2 mb-8">
+      <a
+        href="/keiba-yosou/"
+        class="px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-medium"
+      >
+        すべて
+      </a>
+      {
+        Object.entries(categoryLabels).map(([key, label]) => (
+          <a
+            href={`/keiba-yosou/${key}/`}
+            class="px-4 py-2 rounded-full bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300 transition-colors"
+          >
+            {label}
+          </a>
+        ))
+      }
+    </div>
+
+    <!-- Site Grid -->
+    {
+      sites.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {sites.map((site) => (
+            <SiteCard site={site} />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-16">
+          <svg
+            class="w-16 h-16 mx-auto text-gray-300 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p class="text-gray-600 mb-4">
+            {searchQuery
+              ? `「${searchQuery}」に一致するサイトが見つかりませんでした`
+              : 'まだサイトが登録されていません'}
+          </p>
+          {searchQuery && (
+            <a href="/keiba-yosou/" class="btn-secondary">
+              すべてのサイトを見る
+            </a>
+          )}
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>
