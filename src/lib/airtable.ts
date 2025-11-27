@@ -279,7 +279,39 @@ export async function getSitesWithStats(category?: string): Promise<SiteWithStat
 
     console.log('[getSitesWithStats] Fetched', records.length, 'records from Airtable');
     const sites = records.map(recordToSite);
-    console.log('[getSitesWithStats] Returning', sites.length, 'sites');
+
+    // Fetch all approved reviews once
+    const allReviewsRecords = await base('Reviews')
+      .select({
+        filterByFormula: `{IsApproved} = TRUE()`,
+      })
+      .all();
+
+    // Calculate stats for each site
+    sites.forEach(site => {
+      const siteReviews = allReviewsRecords.filter(record => {
+        const siteField = record.fields.Site as string[] | undefined;
+        return siteField && Array.isArray(siteField) && siteField.includes(site.id);
+      });
+
+      site.review_count = siteReviews.length;
+
+      if (siteReviews.length > 0) {
+        const totalRating = siteReviews.reduce((sum, r) => sum + (r.fields.Rating as number || 0), 0);
+        site.average_rating = totalRating / siteReviews.length;
+
+        // Get latest review time
+        const latestReview = siteReviews.reduce((latest, current) => {
+          const currentTime = new Date(current._rawJson.createdTime).getTime();
+          const latestTime = latest ? new Date(latest._rawJson.createdTime).getTime() : 0;
+          return currentTime > latestTime ? current : latest;
+        }, null as any);
+
+        site.last_review_at = latestReview ? latestReview._rawJson.createdTime : null;
+      }
+    });
+
+    console.log('[getSitesWithStats] Returning', sites.length, 'sites with stats');
     return sites;
   } catch (error) {
     console.error('[getSitesWithStats] Error fetching sites:', error);
@@ -306,7 +338,37 @@ export async function getSiteBySlug(slug: string): Promise<SiteWithStats | null>
       .all();
 
     if (records.length === 0) return null;
-    return recordToSite(records[0]);
+
+    const site = recordToSite(records[0]);
+
+    // Calculate stats from reviews
+    const reviewsRecords = await base('Reviews')
+      .select({
+        filterByFormula: `{IsApproved} = TRUE()`,
+      })
+      .all();
+
+    const siteReviews = reviewsRecords.filter(record => {
+      const siteField = record.fields.Site as string[] | undefined;
+      return siteField && Array.isArray(siteField) && siteField.includes(site.id);
+    });
+
+    site.review_count = siteReviews.length;
+
+    if (siteReviews.length > 0) {
+      const totalRating = siteReviews.reduce((sum, r) => sum + (r.fields.Rating as number || 0), 0);
+      site.average_rating = totalRating / siteReviews.length;
+
+      const latestReview = siteReviews.reduce((latest, current) => {
+        const currentTime = new Date(current._rawJson.createdTime).getTime();
+        const latestTime = latest ? new Date(latest._rawJson.createdTime).getTime() : 0;
+        return currentTime > latestTime ? current : latest;
+      }, null as any);
+
+      site.last_review_at = latestReview ? latestReview._rawJson.createdTime : null;
+    }
+
+    return site;
   } catch (error) {
     console.error('Error fetching site:', error);
     return null;
