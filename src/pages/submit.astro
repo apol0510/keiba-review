@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import SiteSubmitForm from '../components/SiteSubmitForm';
+
+const breadcrumbItems = [
+  { label: 'ホーム', href: '/' },
+  { label: 'サイト登録' },
+];
+
+const title = '競馬予想サイト登録フォーム';
+const description = '新しい競馬予想サイトを登録して、レビューを集めましょう。登録は無料です。';
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="container mx-auto px-4 py-8">
+    <Breadcrumb items={breadcrumbItems} />
+
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">
+          競馬予想サイト登録
+        </h1>
+        <p class="text-lg text-gray-600">
+          新しい競馬予想サイトの情報を登録してください。<br />
+          管理者が確認後、サイトに掲載されます。
+        </p>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <h2 class="text-lg font-semibold text-blue-900 mb-2">
+          📝 登録の流れ
+        </h2>
+        <ol class="list-decimal list-inside space-y-2 text-blue-800">
+          <li>下記フォームに必要情報を入力</li>
+          <li>送信ボタンをクリック</li>
+          <li>管理者が内容を確認（1〜3営業日）</li>
+          <li>承認されるとサイトに掲載</li>
+          <li>ユーザーからのレビューが集まり始めます</li>
+        </ol>
+      </div>
+
+      <SiteSubmitForm client:load />
+
+      <div class="mt-8 bg-gray-50 rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          よくある質問
+        </h2>
+
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-medium text-gray-900 mb-1">Q. 登録は無料ですか？</h3>
+            <p class="text-gray-600">A. はい、完全無料です。登録料や掲載料は一切かかりません。</p>
+          </div>
+
+          <div>
+            <h3 class="font-medium text-gray-900 mb-1">Q. 承認されない場合はありますか？</h3>
+            <p class="text-gray-600">
+              A. 以下の場合は承認されないことがあります：
+            </p>
+            <ul class="list-disc list-inside text-gray-600 ml-4 mt-1">
+              <li>既に登録されているサイトと重複している</li>
+              <li>競馬予想サイトではない</li>
+              <li>違法・不適切なコンテンツを含む</li>
+              <li>サイトが閉鎖されている、またはアクセスできない</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-medium text-gray-900 mb-1">Q. 登録後に情報を修正できますか？</h3>
+            <p class="text-gray-600">
+              A. はい。登録時のメールアドレスよりお問い合わせください。
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-medium text-gray-900 mb-1">Q. 自分のサイトを削除したい</h3>
+            <p class="text-gray-600">
+              A. お問い合わせフォームより削除依頼をお送りください。確認後、削除いたします。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 text-center">
+        <a
+          href="/keiba-yosou/"
+          class="inline-block text-blue-600 hover:text-blue-700 font-medium"
+        >
+          ← サイト一覧に戻る
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

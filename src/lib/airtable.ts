@@ -1,7 +1,7 @@
 import Airtable from 'airtable';
 
 // Airtable設定を取得する関数（動的に評価）
-function getAirtableConfig() {
+export function getAirtableConfig() {
   const apiKey = import.meta.env.AIRTABLE_API_KEY || '';
   const baseId = import.meta.env.AIRTABLE_BASE_ID || '';
   const isDemoMode = !apiKey || !baseId;

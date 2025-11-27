@@ -1,0 +1,187 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getAirtableConfig } from '../../lib/airtable';
+import Airtable from 'airtable';
+
+const { isDemoMode, apiKey, baseId } = await getAirtableConfig();
+
+let pendingSites: any[] = [];
+
+if (!isDemoMode && apiKey && baseId) {
+  try {
+    Airtable.configure({ apiKey });
+    const base = Airtable.base(baseId);
+
+    const records = await base('Sites')
+      .select({
+        filterByFormula: '{IsApproved} = FALSE()',
+        sort: [{ field: 'CreatedAt', direction: 'desc' }],
+      })
+      .all();
+
+    pendingSites = records.map(record => ({
+      id: record.id,
+      name: record.fields.Name,
+      url: record.fields.URL,
+      slug: record.fields.Slug,
+      category: record.fields.Category,
+      description: record.fields.Description,
+      submitterName: record.fields.SubmitterName,
+      submitterEmail: record.fields.SubmitterEmail,
+      createdAt: record._rawJson.createdTime,
+    }));
+  } catch (error) {
+    console.error('Error fetching pending sites:', error);
+  }
+}
+
+const categoryLabels: Record<string, string> = {
+  nankan: 'NANKAN（南関）',
+  chuo: '中央競馬',
+  chihou: '地方競馬',
+  other: 'その他',
+};
+---
+
+<BaseLayout title="未承認サイト一覧 - 管理画面" description="未承認サイトの管理">
+  <div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">未承認サイト一覧</h1>
+      <p class="text-gray-600">
+        ユーザーから登録されたサイトを確認し、承認または却下してください。
+      </p>
+    </div>
+
+    {pendingSites.length === 0 ? (
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+        <p class="text-gray-600">未承認のサイトはありません</p>
+      </div>
+    ) : (
+      <div class="space-y-6">
+        {pendingSites.map((site) => (
+          <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex-1">
+                <h2 class="text-xl font-bold text-gray-900 mb-2">{site.name}</h2>
+                <div class="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {categoryLabels[site.category] || site.category}
+                  </span>
+                  <span>投稿: {new Date(site.createdAt).toLocaleDateString('ja-JP')}</span>
+                </div>
+                <a
+                  href={site.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:underline text-sm"
+                >
+                  {site.url} ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-gray-700 mb-1">説明</h3>
+              <p class="text-gray-600 whitespace-pre-wrap">{site.description}</p>
+            </div>
+
+            <div class="mb-4 bg-gray-50 p-3 rounded">
+              <h3 class="text-sm font-medium text-gray-700 mb-1">投稿者情報</h3>
+              <div class="text-sm text-gray-600">
+                <p>名前: {site.submitterName}</p>
+                <p>メール: {site.submitterEmail}</p>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                data-action="approve"
+                data-site-id={site.id}
+                data-site-url={site.url}
+                class="approve-btn px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                ✓ 承認
+              </button>
+              <button
+                data-action="reject"
+                data-site-id={site.id}
+                class="reject-btn px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                ✗ 却下
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 承認ボタン
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const button = e.target as HTMLButtonElement;
+          const siteId = button.dataset.siteId;
+          const siteUrl = button.dataset.siteUrl;
+
+          if (!confirm('このサイトを承認しますか？')) return;
+
+          button.disabled = true;
+          button.textContent = '処理中...';
+
+          try {
+            const response = await fetch('/api/admin/approve-site', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ siteId, siteUrl }),
+            });
+
+            if (!response.ok) {
+              throw new Error('承認に失敗しました');
+            }
+
+            alert('サイトを承認しました');
+            window.location.reload();
+          } catch (error) {
+            alert('エラーが発生しました: ' + (error as Error).message);
+            button.disabled = false;
+            button.textContent = '✓ 承認';
+          }
+        });
+      });
+
+      // 却下ボタン
+      document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const button = e.target as HTMLButtonElement;
+          const siteId = button.dataset.siteId;
+
+          if (!confirm('このサイトを却下しますか？\n（削除されます）')) return;
+
+          button.disabled = true;
+          button.textContent = '処理中...';
+
+          try {
+            const response = await fetch('/api/admin/reject-site', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ siteId }),
+            });
+
+            if (!response.ok) {
+              throw new Error('却下に失敗しました');
+            }
+
+            alert('サイトを却下しました');
+            window.location.reload();
+          } catch (error) {
+            alert('エラーが発生しました: ' + (error as Error).message);
+            button.disabled = false;
+            button.textContent = '✗ 却下';
+          }
+        });
+      });
+    });
+  </script>
+</BaseLayout>
