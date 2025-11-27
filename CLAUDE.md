@@ -225,6 +225,34 @@ ADMIN_EMAIL
   - DNS Prefetch + Preconnect設定
   - 構造化データ追加（WebSite、Product、Review）
 
+### Phase 4 - 完了 ✅
+- [x] エラーページ実装
+  - カスタム404ページ（`/404.astro`）
+    - モダンなデザイン
+    - 人気カテゴリへのクイックリンク
+    - お問い合わせへの誘導
+  - カスタム500ページ（`/500.astro`）
+    - エラー詳細表示
+    - ページ再読み込みボタン
+    - トラブルシューティングガイド
+- [x] UXコンポーネント
+  - ErrorBoundary（`ErrorBoundary.tsx`）
+    - Reactエラーバウンダリー
+    - 開発環境でのエラー詳細表示
+  - LoadingSpinner（`LoadingSpinner.astro`）
+    - サイズ可変のスピナー
+    - メッセージ表示機能
+  - SkeletonCard（`SkeletonCard.astro`）
+    - ローディング中のプレースホルダー
+    - アニメーション付き
+  - EmptyState（`EmptyState.astro`）
+    - 空状態の統一UI
+    - アイコン、タイトル、説明、アクション
+  - Toast（`Toast.tsx`）
+    - 通知コンポーネント
+    - 4種類のタイプ（success、error、warning、info）
+    - 自動非表示機能
+
 ## 参照
 
 詳細仕様: `keiba-review-platform-spec.md`
