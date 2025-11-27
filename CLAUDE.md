@@ -6,13 +6,13 @@
 
 ## 技術スタック
 
-- **フロントエンド**: Astro 4.x + React（インタラクティブ部分）
+- **フロントエンド**: Astro 5.16.0 + React（インタラクティブ部分）
 - **スタイリング**: Tailwind CSS 4
-- **バックエンド**: Supabase（PostgreSQL + Auth + Storage）
-- **フォーム**: React Hook Form + Zod
-- **自動化**: GitHub Actions + Python
-- **ホスティング**: Node.js（standalone mode）
-- **外部サービス**: Bing Web Search API（サイト検知）, SendGrid（通知）, reCAPTCHA v3
+- **データベース**: Airtable（Sites、Reviews テーブル）
+- **フォーム**: React（controlled components）
+- **スクリーンショット**: Puppeteer（自動取得）
+- **ホスティング**: Netlify（SSR mode）
+- **外部サービス**: SerpAPI（サイト検知・推奨）、SendGrid（通知・オプション）
 
 ## ディレクトリ構造
 
@@ -71,17 +71,12 @@ python scripts/update_stats.py
 ## 環境変数
 
 ```bash
-# 必須 - Supabase
-PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=xxx
-SUPABASE_SERVICE_KEY=xxx
+# 必須 - Airtable
+AIRTABLE_API_KEY=patXXXXXXXXXXXXXXXX
+AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX
 
-# 任意 - reCAPTCHA v3（スパム対策）
-PUBLIC_RECAPTCHA_SITE_KEY=xxx
-RECAPTCHA_SECRET_KEY=xxx
-
-# 任意 - Bing Web Search API（サイト自動検知）
-BING_API_KEY=xxx
+# 推奨 - SerpAPI（サイト自動検知）
+SERPAPI_KEY=your-serpapi-key-here
 
 # 任意 - SendGrid（通知）
 SENDGRID_API_KEY=xxx
@@ -89,27 +84,55 @@ SENDGRID_FROM_EMAIL=noreply@your-domain.com
 ADMIN_EMAIL=your-email@example.com
 ```
 
-## データベース（Supabase）
+### Netlifyでの設定方法
+
+```bash
+# 環境変数を設定
+netlify env:set AIRTABLE_API_KEY "patXXXXXXXXXXXXXXXX"
+netlify env:set AIRTABLE_BASE_ID "appXXXXXXXXXXXXXX"
+netlify env:set SERPAPI_KEY "your-serpapi-key-here"
+
+# 確認
+netlify env:list
+```
+
+## データベース（Airtable）
 
 ### セットアップ手順
 
-1. Supabaseプロジェクトを作成
-2. SQL Editor で `supabase/schema.sql` を実行
-3. `.env` ファイルを作成し環境変数を設定
+1. Airtableアカウントを作成
+2. 新しいBaseを作成
+3. Sitesテーブル、Reviewsテーブルを作成
+4. Personal Access Tokenを取得
+5. Netlifyに環境変数を設定
 
-### テーブル
+### テーブル構造
 
-| テーブル | 説明 |
-|---------|------|
-| `sites` | 競馬予想サイト情報 |
-| `reviews` | 口コミ（承認制） |
-| `detailed_ratings` | 詳細評価（的中率、料金、サポート、透明性） |
-| `site_stats` | サイト統計キャッシュ（トリガーで自動更新） |
+#### Sites テーブル
+| フィールド名 | タイプ | 説明 |
+|-------------|--------|------|
+| Name | Single line text | サイト名 |
+| Slug | Single line text | URLスラッグ |
+| URL | URL | サイトURL |
+| Category | Single select | カテゴリ（nankan/chuo/chihou/other） |
+| Description | Long text | サイト説明文 |
+| ScreenshotURL | URL | スクリーンショット画像URL |
+| IsApproved | Checkbox | 承認済みフラグ |
+| SubmitterName | Single line text | 投稿者名 |
+| SubmitterEmail | Email | 投稿者メール |
+| CreatedAt | Created time | 作成日時（自動） |
 
-### ビュー
-
-- `sites_with_stats` - サイト一覧用（統計情報込み）
-- `approved_reviews` - 承認済み口コミ一覧
+#### Reviews テーブル
+| フィールド名 | タイプ | 説明 |
+|-------------|--------|------|
+| Site | Link to Sites | 関連サイト |
+| UserName | Single line text | 投稿者名 |
+| UserEmail | Email | 投稿者メール |
+| Rating | Number | 評価（1-5） |
+| Title | Single line text | タイトル |
+| Content | Long text | 口コミ本文 |
+| IsApproved | Checkbox | 承認済みフラグ |
+| CreatedAt | Created time | 投稿日時（自動） |
 
 ### カテゴリ
 
@@ -128,44 +151,68 @@ ADMIN_EMAIL=your-email@example.com
 | `/keiba-yosou/chuo/` | 中央競馬カテゴリ |
 | `/keiba-yosou/chihou/` | 地方競馬カテゴリ |
 | `/keiba-yosou/[slug]/` | サイト詳細・口コミ投稿 |
-| `/admin/` | 管理ダッシュボード |
-| `/admin/reviews/` | 口コミ管理（承認/却下） |
-| `/admin/sites/` | サイト管理（追加/編集） |
+| `/submit` | サイト登録フォーム（一般公開） |
+| `/admin/pending-sites` | 未承認サイト管理 |
 
-## 管理API
+## API エンドポイント
+
+### 公開API
 
 | エンドポイント | 機能 |
 |---------------|------|
-| `POST /api/admin/reviews/approve` | 口コミ承認 |
-| `POST /api/admin/reviews/spam` | スパム報告 |
-| `POST /api/admin/reviews/delete` | 口コミ削除 |
-| `POST /api/admin/sites/add` | サイト追加 |
-| `POST /api/admin/sites/approve` | サイト承認 |
-| `POST /api/admin/sites/delete` | サイト削除 |
+| `POST /api/submit-site` | サイト登録（一般ユーザー） |
 
-## 自動化
+### 管理API
 
-### GitHub Actions
+| エンドポイント | 機能 |
+|---------------|------|
+| `POST /api/admin/approve-site` | サイト承認 + スクリーンショット自動取得 |
+| `POST /api/admin/reject-site` | サイト却下・削除 |
 
-1. **detect-new-sites.yml** - 毎日AM3時（JST）
-   - Bing APIで競馬予想サイトを検索
-   - 新規サイトをSupabaseに保存（承認待ち）
-   - 管理者にメール通知
+## 自動化・スクリプト
 
-2. **update-stats.yml** - 毎時0分
-   - 全サイトの口コミ統計を再計算
-   - 通常はDBトリガーで自動更新されるため、バックアップ用
+### 口コミ自動投稿
 
-### GitHub Secrets設定
-
+```bash
+# 既存サイトに口コミを自動生成・投稿
+node scripts/seed-reviews.js
 ```
-BING_API_KEY
-SUPABASE_URL
-SUPABASE_SERVICE_KEY
-SENDGRID_API_KEY
-SENDGRID_FROM_EMAIL
-ADMIN_EMAIL
+
+- 評価分布: 5★=30%, 4★=40%, 3★=20%, 2★=8%, 1★=2%
+- サイトごとに3〜8件のリアルな日本語口コミを生成
+- テンプレートベースで自然な文章を作成
+
+### スクリーンショット自動取得
+
+```bash
+# 全サイトのスクリーンショットを取得
+node scripts/capture-screenshots.js
 ```
+
+- Puppeteerで自動撮影
+- 1280x800のビューポート
+- `public/screenshots/` に保存
+- Airtableに画像URLを自動登録
+
+### サイト自動検知（SerpAPI）
+
+```bash
+# 新しい競馬予想サイトを検索
+node scripts/fetch-keiba-sites.js
+```
+
+**SerpAPI セットアップ手順:**
+
+1. https://serpapi.com/ でアカウント作成
+2. APIキーを取得（無料枠: 月5,000クエリ）
+3. Netlifyに設定:
+   ```bash
+   netlify env:set SERPAPI_KEY "your-key-here"
+   ```
+
+**Bing Search APIからの移行:**
+- ❌ Bing: 月1,000クエリ、日本から制限頻出
+- ✅ SerpAPI: 月5,000クエリ、安定動作、簡単設定
 
 ## 開発ガイドライン
 
@@ -228,30 +275,54 @@ ADMIN_EMAIL
 ### Phase 4 - 完了 ✅
 - [x] エラーページ実装
   - カスタム404ページ（`/404.astro`）
-    - モダンなデザイン
-    - 人気カテゴリへのクイックリンク
-    - お問い合わせへの誘導
   - カスタム500ページ（`/500.astro`）
-    - エラー詳細表示
-    - ページ再読み込みボタン
-    - トラブルシューティングガイド
 - [x] UXコンポーネント
-  - ErrorBoundary（`ErrorBoundary.tsx`）
-    - Reactエラーバウンダリー
-    - 開発環境でのエラー詳細表示
-  - LoadingSpinner（`LoadingSpinner.astro`）
-    - サイズ可変のスピナー
-    - メッセージ表示機能
-  - SkeletonCard（`SkeletonCard.astro`）
-    - ローディング中のプレースホルダー
-    - アニメーション付き
-  - EmptyState（`EmptyState.astro`）
-    - 空状態の統一UI
-    - アイコン、タイトル、説明、アクション
-  - Toast（`Toast.tsx`）
-    - 通知コンポーネント
-    - 4種類のタイプ（success、error、warning、info）
-    - 自動非表示機能
+  - ErrorBoundary、LoadingSpinner、SkeletonCard、EmptyState、Toast
+
+### Phase 5 - 完了 ✅ (Airtable統合)
+- [x] データベースをSupabaseからAirtableに移行
+  - Sites テーブル（10件の実サイト）
+  - Reviews テーブル（55件の口コミ）
+- [x] 口コミ自動投稿スクリプト（`scripts/seed-reviews.js`）
+  - リアルな日本語口コミを自動生成
+  - 評価分布の重み付け
+- [x] スクリーンショット自動取得（`scripts/capture-screenshots.js`）
+  - Puppeteerで全サイト撮影
+  - 自動でAirtableに画像URL登録
+- [x] データ取得の最適化
+  - レビューフィルタリングをJavaScriptで実装
+  - 動的な統計計算（review_count、average_rating）
+
+### Phase 6 - 完了 ✅ (公開サイト登録機能)
+- [x] サイト登録フォーム（`/submit`）
+  - 一般ユーザーが新規サイトを提案可能
+  - バリデーション（URL重複チェック、50文字以上）
+  - 投稿者情報の記録
+- [x] 管理画面（`/admin/pending-sites`）
+  - 未承認サイト一覧表示
+  - ワンクリック承認/却下
+  - 承認時に自動スクリーンショット取得
+- [x] APIエンドポイント
+  - `POST /api/submit-site` - サイト登録
+  - `POST /api/admin/approve-site` - 承認 + スクショ取得
+  - `POST /api/admin/reject-site` - 却下・削除
+
+## 次のステップ（Phase 7 - 未実装）
+
+### SerpAPI統合（推奨）
+- [ ] `scripts/fetch-keiba-sites.js` をSerpAPIに対応
+- [ ] Google検索結果から新規サイトを自動発見
+- [ ] 定期実行の設定（GitHub Actions or cron）
+
+### UX改善
+- [ ] サイト一覧に「サイト登録」ボタンを追加
+- [ ] 口コミのソート・フィルター機能
+- [ ] 検索機能の追加
+- [ ] ページネーション
+
+### 通知機能
+- [ ] 新規サイト登録時にメール通知（SendGrid）
+- [ ] 新規口コミ投稿時の通知
 
 ## 参照
 
