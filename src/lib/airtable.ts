@@ -1,18 +1,37 @@
 import Airtable from 'airtable';
 
-// Airtable設定
-const apiKey = import.meta.env.AIRTABLE_API_KEY || '';
-const baseId = import.meta.env.AIRTABLE_BASE_ID || '';
+// Airtable設定を取得する関数（動的に評価）
+function getAirtableConfig() {
+  const apiKey = import.meta.env.AIRTABLE_API_KEY || '';
+  const baseId = import.meta.env.AIRTABLE_BASE_ID || '';
+  const isDemoMode = !apiKey || !baseId;
 
-// デモモード判定
-const isDemoMode = !apiKey || !baseId;
+  console.log('[getAirtableConfig] apiKey:', apiKey ? `exists (${apiKey.length} chars)` : 'missing');
+  console.log('[getAirtableConfig] baseId:', baseId || 'missing');
+  console.log('[getAirtableConfig] isDemoMode:', isDemoMode);
 
-// Airtableクライアント初期化
-let base: Airtable.Base | null = null;
-if (!isDemoMode) {
-  Airtable.configure({ apiKey });
-  base = Airtable.base(baseId);
+  return { apiKey, baseId, isDemoMode };
 }
+
+// Airtableベースを取得（遅延初期化）
+function getBase(): Airtable.Base | null {
+  const { apiKey, baseId, isDemoMode } = getAirtableConfig();
+
+  if (isDemoMode) {
+    return null;
+  }
+
+  try {
+    Airtable.configure({ apiKey });
+    return Airtable.base(baseId);
+  } catch (error) {
+    console.error('[getBase] Error initializing Airtable:', error);
+    return null;
+  }
+}
+
+// 後方互換性のため
+const isDemoMode = getAirtableConfig().isDemoMode;
 
 // 型定義
 export interface Site {
@@ -163,22 +182,47 @@ const demoReviews: Review[] = [
 // Airtableレコードをサイトオブジェクトに変換
 function recordToSite(record: Airtable.Record<any>): SiteWithStats {
   const fields = record.fields;
+
+  // Descriptionから特徴と料金情報を抽出
+  const description = fields.Description || '';
+  let features: string[] = [];
+  let price_info: string | null = null;
+  let cleanDescription = description;
+
+  // 「特徴:」で始まる行を抽出
+  const featureMatch = description.match(/特徴:\s*([^\n]+)/);
+  if (featureMatch) {
+    features = featureMatch[1].split(/[、,]/).map((f: string) => f.trim());
+  }
+
+  // 「料金:」で始まる行を抽出
+  const priceMatch = description.match(/料金:\s*([^\n]+)/);
+  if (priceMatch) {
+    price_info = priceMatch[1].trim();
+  }
+
+  // 本文から特徴と料金の行を除去
+  cleanDescription = description
+    .replace(/\n\n特徴:.*/, '')
+    .replace(/\n料金:.*/, '')
+    .trim();
+
   return {
     id: record.id,
     name: fields.Name || '',
     url: fields.URL || '',
     slug: fields.Slug || '',
     category: fields.Category || 'other',
-    description: fields.Description || null,
-    features: fields.Features ? fields.Features.split(',').map((f: string) => f.trim()) : [],
-    price_info: fields.PriceInfo || null,
-    screenshot_url: fields.Screenshot?.[0]?.url || null,
+    description: cleanDescription || null,
+    features,
+    price_info,
+    screenshot_url: fields.ScreenshotURL || null,
     is_approved: fields.IsApproved || false,
     created_at: record._rawJson.createdTime,
     updated_at: record._rawJson.createdTime,
-    review_count: fields.ReviewCount || 0,
-    average_rating: fields.AverageRating || 0,
-    last_review_at: fields.LastReviewAt || null,
+    review_count: 0,  // Reviewsリンクから計算する必要がある
+    average_rating: 0,  // Reviewsから計算する必要がある
+    last_review_at: null,
   };
 }
 
@@ -187,7 +231,7 @@ function recordToReview(record: Airtable.Record<any>): Review {
   const fields = record.fields;
   return {
     id: record.id,
-    site_id: fields.SiteId?.[0] || '',
+    site_id: fields.Site?.[0] || '',  // "Site" フィールド（リンクフィールド）
     user_name: fields.UserName || '',
     user_email: fields.UserEmail || '',
     rating: fields.Rating || 0,
@@ -202,7 +246,11 @@ function recordToReview(record: Airtable.Record<any>): Review {
 
 // API関数
 export async function getSitesWithStats(category?: string): Promise<SiteWithStats[]> {
+  const { isDemoMode } = getAirtableConfig();
+  console.log('[getSitesWithStats] isDemoMode:', isDemoMode, 'category:', category);
+
   if (isDemoMode) {
+    console.log('[getSitesWithStats] Using demo data');
     if (category) {
       return demoSites.filter(s => s.category === category);
     }
@@ -210,31 +258,47 @@ export async function getSitesWithStats(category?: string): Promise<SiteWithStat
   }
 
   try {
+    const base = getBase();
+    if (!base) {
+      console.error('[getSitesWithStats] Base is null, using demo data');
+      return demoSites;
+    }
+
     const filterFormula = category
       ? `AND({IsApproved} = TRUE(), {Category} = '${category}')`
       : `{IsApproved} = TRUE()`;
 
-    const records = await base!('Sites')
+    console.log('[getSitesWithStats] Fetching from Airtable with filter:', filterFormula);
+
+    const records = await base('Sites')
       .select({
         filterByFormula: filterFormula,
-        sort: [{ field: 'ReviewCount', direction: 'desc' }],
+        sort: [{ field: 'CreatedAt', direction: 'desc' }],
       })
       .all();
 
-    return records.map(recordToSite);
+    console.log('[getSitesWithStats] Fetched', records.length, 'records from Airtable');
+    const sites = records.map(recordToSite);
+    console.log('[getSitesWithStats] Returning', sites.length, 'sites');
+    return sites;
   } catch (error) {
-    console.error('Error fetching sites:', error);
+    console.error('[getSitesWithStats] Error fetching sites:', error);
     return [];
   }
 }
 
 export async function getSiteBySlug(slug: string): Promise<SiteWithStats | null> {
+  const { isDemoMode } = getAirtableConfig();
+
   if (isDemoMode) {
     return demoSites.find(s => s.slug === slug) || null;
   }
 
   try {
-    const records = await base!('Sites')
+    const base = getBase();
+    if (!base) return null;
+
+    const records = await base('Sites')
       .select({
         filterByFormula: `AND({IsApproved} = TRUE(), {Slug} = '${slug}')`,
         maxRecords: 1,
@@ -250,14 +314,19 @@ export async function getSiteBySlug(slug: string): Promise<SiteWithStats | null>
 }
 
 export async function getReviewsBySiteId(siteId: string): Promise<Review[]> {
+  const { isDemoMode } = getAirtableConfig();
+
   if (isDemoMode) {
     return demoReviews.filter(r => r.site_id === siteId);
   }
 
   try {
-    const records = await base!('Reviews')
+    const base = getBase();
+    if (!base) return [];
+
+    const records = await base('Reviews')
       .select({
-        filterByFormula: `AND({SiteId} = '${siteId}', {IsApproved} = TRUE(), {IsSpam} = FALSE())`,
+        filterByFormula: `AND(FIND('${siteId}', ARRAYJOIN({Site})), {IsApproved} = TRUE(), {IsSpam} = FALSE())`,
         sort: [{ field: 'CreatedAt', direction: 'desc' }],
       })
       .all();
@@ -270,6 +339,8 @@ export async function getReviewsBySiteId(siteId: string): Promise<Review[]> {
 }
 
 export async function getLatestReviews(limit: number = 10): Promise<ReviewWithSite[]> {
+  const { isDemoMode } = getAirtableConfig();
+
   if (isDemoMode) {
     return demoReviews.slice(0, limit).map(r => {
       const site = demoSites.find(s => s.id === r.site_id);
@@ -282,7 +353,10 @@ export async function getLatestReviews(limit: number = 10): Promise<ReviewWithSi
   }
 
   try {
-    const records = await base!('Reviews')
+    const base = getBase();
+    if (!base) return [];
+
+    const records = await base('Reviews')
       .select({
         filterByFormula: `AND({IsApproved} = TRUE(), {IsSpam} = FALSE())`,
         sort: [{ field: 'CreatedAt', direction: 'desc' }],
@@ -297,7 +371,7 @@ export async function getLatestReviews(limit: number = 10): Promise<ReviewWithSi
     const sitesMap = new Map<string, SiteWithStats>();
     for (const siteId of siteIds) {
       try {
-        const siteRecord = await base!('Sites').find(siteId);
+        const siteRecord = await base('Sites').find(siteId);
         sitesMap.set(siteId, recordToSite(siteRecord));
       } catch {
         // サイトが見つからない場合はスキップ
@@ -328,6 +402,8 @@ export async function submitReview(review: {
   ip_address?: string;
   user_agent?: string;
 }): Promise<Review> {
+  const { isDemoMode } = getAirtableConfig();
+
   if (isDemoMode) {
     // デモモードでは成功を返す
     return {
@@ -346,15 +422,16 @@ export async function submitReview(review: {
   }
 
   try {
-    const record = await base!('Reviews').create({
-      SiteId: [review.site_id],
+    const base = getBase();
+    if (!base) throw new Error('Airtable base not initialized');
+
+    const record = await base('Reviews').create({
+      Site: [review.site_id],  // "Site" フィールド（リンクフィールド）
       UserName: review.user_name,
       UserEmail: review.user_email,
       Rating: review.rating,
       Title: review.title,
       Content: review.content,
-      IPAddress: review.ip_address || '',
-      UserAgent: review.user_agent || '',
       IsApproved: false,
       IsSpam: false,
     });

@@ -1,0 +1,21 @@
+---
+// デバッグ用ページ - 本番環境ではアクセス制限を推奨
+const apiKey = import.meta.env.AIRTABLE_API_KEY;
+const baseId = import.meta.env.AIRTABLE_BASE_ID;
+const isDemoMode = !apiKey || !baseId;
+---
+
+<html>
+<head>
+  <title>Debug Info</title>
+</head>
+<body style="font-family: monospace; padding: 20px;">
+  <h1>Environment Debug Info</h1>
+  <ul>
+    <li>AIRTABLE_API_KEY exists: {apiKey ? 'YES (length: ' + apiKey.length + ')' : 'NO'}</li>
+    <li>AIRTABLE_BASE_ID exists: {baseId ? 'YES (' + baseId + ')' : 'NO'}</li>
+    <li>Demo Mode: {isDemoMode ? 'YES' : 'NO'}</li>
+    <li>Environment: {import.meta.env.MODE}</li>
+  </ul>
+</body>
+</html>
