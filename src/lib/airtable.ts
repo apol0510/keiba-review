@@ -324,14 +324,28 @@ export async function getReviewsBySiteId(siteId: string): Promise<Review[]> {
     const base = getBase();
     if (!base) return [];
 
+    // Get all approved reviews and filter in JavaScript
+    // (Airtable formula filtering on linked record fields is unreliable)
     const records = await base('Reviews')
       .select({
-        filterByFormula: `AND(FIND('${siteId}', ARRAYJOIN({Site})), {IsApproved} = TRUE())`,
-        sort: [{ field: 'CreatedAt', direction: 'desc' }],
+        filterByFormula: `{IsApproved} = TRUE()`,
       })
       .all();
 
-    return records.map(recordToReview);
+    // Filter for matching site ID
+    const filteredRecords = records.filter(record => {
+      const siteField = record.fields.Site as string[] | undefined;
+      return siteField && Array.isArray(siteField) && siteField.includes(siteId);
+    });
+
+    // Sort by created time (newest first)
+    filteredRecords.sort((a, b) => {
+      const aTime = new Date(a._rawJson.createdTime).getTime();
+      const bTime = new Date(b._rawJson.createdTime).getTime();
+      return bTime - aTime;
+    });
+
+    return filteredRecords.map(recordToReview);
   } catch (error) {
     console.error('Error fetching reviews:', error);
     return [];
