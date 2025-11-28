@@ -20,7 +20,7 @@ const base = Airtable.base(AIRTABLE_BASE_ID);
 
 /**
  * スクリーンショットURLを生成
- * thum.io を使用（無料、登録不要、即座に画像表示）
+ * screenshotone.com を使用（高速、CDN配信、キャッシュ有効）
  */
 function generateScreenshotUrl(siteUrl) {
   if (!siteUrl) {
@@ -34,10 +34,13 @@ function generateScreenshotUrl(siteUrl) {
     normalizedUrl = `https://${normalizedUrl}`;
   }
 
-  // thum.io: 無料、登録不要、即座に画像が表示される
-  // フォーマット: https://image.thum.io/get/width/[width]/crop/[height]/[URL]
-  // 1200px幅、800pxにクロップ
-  const screenshotUrl = `https://image.thum.io/get/width/1200/crop/800/${normalizedUrl}`;
+  const encodedUrl = encodeURIComponent(normalizedUrl);
+
+  // screenshotone.com: 高速、CDN配信、無料枠あり
+  // viewport=1200x800: 表示サイズ
+  // format=jpg: JPEGは軽量
+  // cache_ttl=2592000: 30日間キャッシュ
+  const screenshotUrl = `https://api.screenshotone.com/take?url=${encodedUrl}&viewport_width=1200&viewport_height=800&device_scale_factor=1&format=jpg&image_quality=80&cache=true&cache_ttl=2592000&access_key=demo`;
 
   return screenshotUrl;
 }
