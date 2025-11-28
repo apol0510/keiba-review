@@ -69,6 +69,11 @@ const EXCLUDE_URL_PATTERNS = [
   'daily.co.jp',       // デイリースポーツ
   'keibabook.co.jp',   // 競馬ブック
   'sports.yahoo.co.jp', // スポーツナビ
+  'keiba-tokai.jp',    // 競馬東海スペシャル
+  'fukuchan.net',      // 福ちゃん出版社
+  'kanazawakeiba-yoso.com', // 金沢競馬専門紙協会
+  'kichiuma.net',      // 吉馬（WEB競馬新聞）
+  'kichiuma-chiho.net', // 吉馬 地方競馬版
 
   // その他
   'keibalab.jp',  // レース一覧のみ

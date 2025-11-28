@@ -144,6 +144,11 @@ const EXCLUDED_PATTERNS = [
   'keibabook.co.jp',    // 競馬ブック
   'sports.yahoo.co.jp', // スポーツナビ
   'hochi.co.jp',        // スポーツ報知
+  'keiba-tokai.jp',     // 競馬東海スペシャル
+  'fukuchan.net',       // 福ちゃん出版社
+  'kanazawakeiba-yoso.com', // 金沢競馬専門紙協会
+  'kichiuma.net',       // 吉馬（WEB競馬新聞）
+  'kichiuma-chiho.net', // 吉馬 地方競馬版
 
   // ツール・ランキングサイト
   'uma36.com',             // 馬三郎タイムズ（ランキング）
