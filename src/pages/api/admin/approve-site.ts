@@ -43,13 +43,15 @@ export const POST: APIRoute = async ({ request }) => {
       IsApproved: true,
     });
 
-    // スクリーンショットURLを設定（外部サービスを使用）
+    // スクリーンショットURLを生成して保存
     const screenshotUrl = generateScreenshotUrl(actualSiteUrl || siteUrl);
     console.log('Generated screenshot URL:', screenshotUrl);
 
-    await base('Sites').update(siteId, {
-      ScreenshotURL: screenshotUrl,
-    });
+    if (screenshotUrl) {
+      await base('Sites').update(siteId, {
+        ScreenshotURL: screenshotUrl,
+      });
+    }
 
     // 投稿者に承認通知を送信
     if (submitterEmail) {
@@ -78,7 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
 
 /**
  * スクリーンショットURLを生成
- * S-shot.ru を使用（無料、登録不要、URLエンコード不要）
+ * thum.io を使用（無料、登録不要、即座に画像表示）
  */
 function generateScreenshotUrl(siteUrl: string): string {
   if (!siteUrl) {
@@ -86,29 +88,17 @@ function generateScreenshotUrl(siteUrl: string): string {
     return '';
   }
 
-  // URLが http:// または https:// で始まっていない場合は https:// を追加
+  // URLを正規化
   let normalizedUrl = siteUrl.trim();
   if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
     normalizedUrl = `https://${normalizedUrl}`;
     console.log(`Added https:// prefix to URL: ${normalizedUrl}`);
   }
 
-  // S-shot.ru: 無料、登録不要、日本語サイト対応
-  // フォーマット: https://mini.s-shot.ru/[width]x[height]/[format]/[thumbnail_width]/[options]/?[URL]
-  // 1024x768の解像度、JPEG形式、1024pxのサムネイル、100%ズーム
-  const screenshotUrl = `https://mini.s-shot.ru/1024x768/JPEG/1024/Z100/?${normalizedUrl}`;
+  // thum.io: 無料、登録不要、即座に画像が表示される
+  // フォーマット: https://image.thum.io/get/width/[width]/crop/[height]/[URL]
+  // 1200px幅、800pxにクロップ
+  const screenshotUrl = `https://image.thum.io/get/width/1200/crop/800/${normalizedUrl}`;
 
   return screenshotUrl;
-
-  // 代替オプション:
-  //
-  // Microlink (無料枠: 月50リクエスト、登録不要)
-  // const encodedUrl = encodeURIComponent(normalizedUrl);
-  // return `https://api.microlink.io/?url=${encodedUrl}&screenshot=true&meta=false&embed=screenshot.url`;
-  //
-  // ApiFlash (無料枠: 月100枚、要登録)
-  // const apiKey = import.meta.env.APIFLASH_KEY;
-  // if (apiKey) {
-  //   return `https://api.apiflash.com/v1/urltoimage?access_key=${apiKey}&url=${encodedUrl}&width=1200&height=800`;
-  // }
 }
