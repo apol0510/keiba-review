@@ -136,6 +136,20 @@ const EXCLUDED_PATTERNS = [
   'spat4.jp',
   'ipat.jra.go.jp',
 
+  // 競馬新聞・メディア
+  'nikkansports.com',   // 日刊スポーツ
+  'sanspo.com',         // サンスポ
+  'tospo-keiba.jp',     // 東スポ競馬
+  'daily.co.jp',        // デイリースポーツ
+  'keibabook.co.jp',    // 競馬ブック
+  'sports.yahoo.co.jp', // スポーツナビ
+  'hochi.co.jp',        // スポーツ報知
+
+  // ツール・ランキングサイト
+  'uma36.com',             // 馬三郎タイムズ（ランキング）
+  'keiba.pa.land.to',      // ツール（早見表）
+  'tom.tokyokeibajo.com',  // ツール（買い目計算）
+
   // URLパスパターン（個別記事を示す）
   '/article/',
   '/archives/',

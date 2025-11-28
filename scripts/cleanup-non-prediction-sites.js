@@ -62,6 +62,14 @@ const EXCLUDE_URL_PATTERNS = [
   'spat4.jp',     // SPAT4（投票サイト）
   'ipat.jra.go.jp', // IPAT（投票サイト）
 
+  // 競馬新聞・メディア
+  'nikkansports.com',  // 日刊スポーツ
+  'sanspo.com',        // サンスポ
+  'tospo-keiba.jp',    // 東スポ競馬
+  'daily.co.jp',       // デイリースポーツ
+  'keibabook.co.jp',   // 競馬ブック
+  'sports.yahoo.co.jp', // スポーツナビ
+
   // その他
   'keibalab.jp',  // レース一覧のみ
   'jbis.or.jp',   // データベース
@@ -69,6 +77,9 @@ const EXCLUDE_URL_PATTERNS = [
   'note.com',     // 個人note（予想サイトではない）
   'blogmura.com', // ブログランキング
   'blog.with2.net', // ブログランキング
+  'uma36.com',    // 馬三郎タイムズ（ランキングサイト）
+  'keiba.pa.land.to', // ツール（早見表）
+  'tom.tokyokeibajo.com', // ツール（買い目計算）
 ];
 
 // 削除すべきサイト名パターン
