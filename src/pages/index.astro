@@ -5,8 +5,16 @@ import ReviewCard from '../components/ReviewCard.astro';
 import { getSitesWithStats, getLatestReviews, categoryLabels } from '../lib/airtable';
 
 // データ取得
-const sites = await getSitesWithStats();
+let sites = await getSitesWithStats();
 const latestReviews = await getLatestReviews(6);
+
+// 表示優先度でソート（高い順）、同じ優先度の場合は口コミ数順
+sites.sort((a, b) => {
+  if (b.display_priority !== a.display_priority) {
+    return b.display_priority - a.display_priority;
+  }
+  return b.review_count - a.review_count;
+});
 
 // カテゴリ別にサイトをグループ化
 const categories = ['nankan', 'chuo', 'chihou'] as const;

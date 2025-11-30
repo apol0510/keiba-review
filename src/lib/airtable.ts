@@ -55,6 +55,9 @@ export interface Site {
   registration_required: boolean;
   last_verified_at: string | null;
   is_closed: boolean;
+  // 品質管理フィールド
+  site_quality: 'excellent' | 'normal' | 'malicious';
+  display_priority: number;
 }
 
 export interface SiteWithStats extends Site {
@@ -113,6 +116,8 @@ const demoSites: SiteWithStats[] = [
     registration_required: true,
     last_verified_at: '2024-11-01T00:00:00Z',
     is_closed: false,
+    site_quality: 'excellent',
+    display_priority: 150,
     review_count: 15,
     average_rating: 4.2,
     last_review_at: '2024-11-20T00:00:00Z',
@@ -130,6 +135,13 @@ const demoSites: SiteWithStats[] = [
     is_approved: true,
     created_at: '2024-02-01T00:00:00Z',
     updated_at: '2024-02-01T00:00:00Z',
+    pricing_type: 'partially_paid',
+    has_free_trial: false,
+    registration_required: false,
+    last_verified_at: null,
+    is_closed: false,
+    site_quality: 'normal',
+    display_priority: 50,
     review_count: 23,
     average_rating: 3.8,
     last_review_at: '2024-11-18T00:00:00Z',
@@ -147,6 +159,13 @@ const demoSites: SiteWithStats[] = [
     is_approved: true,
     created_at: '2024-03-01T00:00:00Z',
     updated_at: '2024-03-01T00:00:00Z',
+    pricing_type: 'fully_paid',
+    has_free_trial: false,
+    registration_required: true,
+    last_verified_at: null,
+    is_closed: false,
+    site_quality: 'normal',
+    display_priority: 50,
     review_count: 8,
     average_rating: 4.5,
     last_review_at: '2024-11-15T00:00:00Z',
@@ -242,6 +261,9 @@ function recordToSite(record: Airtable.Record<any>): SiteWithStats {
     registration_required: fields.RegistrationRequired || false,
     last_verified_at: fields.LastVerifiedAt || null,
     is_closed: fields.IsClosed || false,
+    // 品質管理フィールド
+    site_quality: (fields.SiteQuality as 'excellent' | 'normal' | 'malicious') || 'normal',
+    display_priority: (fields.DisplayPriority as number) || 50,
     review_count: 0,  // Reviewsリンクから計算する必要がある
     average_rating: 0,  // Reviewsから計算する必要がある
     last_review_at: null,

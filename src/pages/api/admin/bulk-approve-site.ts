@@ -23,11 +23,14 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Airtableで承認フラグを立てる（スクリーンショット取得なし）
+    // 一括承認時はデフォルト値（normal/50）を設定
     Airtable.configure({ apiKey });
     const base = Airtable.base(baseId);
 
     await base('Sites').update(siteId, {
       IsApproved: true,
+      SiteQuality: 'normal',
+      DisplayPriority: 50,
     });
 
     return new Response(JSON.stringify({ success: true }), {

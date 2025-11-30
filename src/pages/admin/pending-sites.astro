@@ -110,22 +110,57 @@ const categoryLabels: Record<string, string> = {
               </div>
             </div>
 
-            <div class="flex gap-3">
-              <button
-                data-action="approve"
-                data-site-id={site.id}
-                data-site-url={site.url}
-                class="approve-btn px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                ✓ 承認
-              </button>
-              <button
-                data-action="reject"
-                data-site-id={site.id}
-                class="reject-btn px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                ✗ 却下
-              </button>
+            <div class="border-t pt-4 mt-4">
+              <h3 class="text-sm font-medium text-gray-700 mb-3">承認設定</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    サイト品質
+                  </label>
+                  <select
+                    data-site-id={site.id}
+                    class="quality-select w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="normal">通常（デフォルト）</option>
+                    <option value="excellent">優良サイト</option>
+                    <option value="malicious">悪質サイト</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    表示優先度
+                  </label>
+                  <input
+                    type="number"
+                    data-site-id={site.id}
+                    class="priority-input w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value="50"
+                    min="0"
+                    max="999"
+                    placeholder="1-999 (大きいほど上位)"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">
+                    優良: 100-200 / 通常: 50 / 悪質: 0-10
+                  </p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <button
+                  data-action="approve"
+                  data-site-id={site.id}
+                  data-site-url={site.url}
+                  class="approve-btn px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium"
+                >
+                  ✓ 承認してスクショ取得
+                </button>
+                <button
+                  data-action="reject"
+                  data-site-id={site.id}
+                  class="reject-btn px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  ✗ 却下
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -201,6 +236,13 @@ const categoryLabels: Record<string, string> = {
           const siteId = button.dataset.siteId;
           const siteUrl = button.dataset.siteUrl;
 
+          // 同じサイトIDの品質と優先度の値を取得
+          const qualitySelect = document.querySelector(`.quality-select[data-site-id="${siteId}"]`) as HTMLSelectElement;
+          const priorityInput = document.querySelector(`.priority-input[data-site-id="${siteId}"]`) as HTMLInputElement;
+
+          const siteQuality = qualitySelect?.value || 'normal';
+          const displayPriority = parseInt(priorityInput?.value || '50', 10);
+
           if (!confirm('このサイトを承認しますか？\n（スクリーンショットを自動取得します）')) return;
 
           button.disabled = true;
@@ -210,7 +252,12 @@ const categoryLabels: Record<string, string> = {
             const response = await fetch('/api/admin/approve-site', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ siteId, siteUrl }),
+              body: JSON.stringify({
+                siteId,
+                siteUrl,
+                siteQuality,
+                displayPriority
+              }),
             });
 
             if (!response.ok) {
@@ -222,7 +269,7 @@ const categoryLabels: Record<string, string> = {
           } catch (error) {
             alert('エラーが発生しました: ' + (error as Error).message);
             button.disabled = false;
-            button.textContent = '✓ 承認';
+            button.textContent = '✓ 承認してスクショ取得';
           }
         });
       });

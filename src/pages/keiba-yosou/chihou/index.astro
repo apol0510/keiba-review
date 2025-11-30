@@ -36,8 +36,22 @@ switch (sortBy) {
   case 'reviews':
     sites.sort((a, b) => b.review_count - a.review_count);
     break;
-  default: // popular
-    sites.sort((a, b) => b.review_count - a.review_count);
+  case 'priority':
+    // 表示優先度でソート（高い順）、同じ優先度の場合は口コミ数順
+    sites.sort((a, b) => {
+      if (b.display_priority !== a.display_priority) {
+        return b.display_priority - a.display_priority;
+      }
+      return b.review_count - a.review_count;
+    });
+    break;
+  default: // popular (デフォルトは優先度順に変更)
+    sites.sort((a, b) => {
+      if (b.display_priority !== a.display_priority) {
+        return b.display_priority - a.display_priority;
+      }
+      return b.review_count - a.review_count;
+    });
 }
 
 const breadcrumbItems = [

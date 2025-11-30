@@ -8,7 +8,7 @@ const SITE_URL = import.meta.env.SITE_URL || 'https://frabjous-taiyaki-460401.ne
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { siteId, siteUrl } = await request.json();
+    const { siteId, siteUrl, siteQuality, displayPriority } = await request.json();
 
     if (!siteId) {
       return new Response(
@@ -38,10 +38,22 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('Site info:', { siteName, siteSlug, actualSiteUrl });
 
-    // サイトを承認状態に更新
-    await base('Sites').update(siteId, {
+    // サイトを承認状態に更新し、品質と優先度も設定
+    const updateFields: any = {
       IsApproved: true,
-    });
+    };
+
+    // 品質が指定されている場合は設定（デフォルト: normal）
+    if (siteQuality) {
+      updateFields.SiteQuality = siteQuality;
+    }
+
+    // 優先度が指定されている場合は設定（デフォルト: 50）
+    if (displayPriority !== undefined && displayPriority !== null) {
+      updateFields.DisplayPriority = displayPriority;
+    }
+
+    await base('Sites').update(siteId, updateFields);
 
     // スクリーンショットURLを生成して保存
     const screenshotUrl = generateScreenshotUrl(actualSiteUrl || siteUrl);
