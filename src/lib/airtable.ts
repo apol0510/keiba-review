@@ -11,6 +11,23 @@ if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
 // Airtableクライアント初期化
 const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
 
+// 簡易メモリキャッシュ（5分間有効）
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5分
+
+function getCached<T>(key: string): T | null {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data as T;
+  }
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: any): void {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
 // Airtable設定を取得する関数（互換性のため）
 export async function getAirtableConfig() {
   return {
@@ -352,6 +369,13 @@ export interface SiteWithStats extends Site {
 }
 
 export async function getSitesWithStats(): Promise<SiteWithStats[]> {
+  // キャッシュチェック
+  const cacheKey = 'sites_with_stats';
+  const cached = getCached<SiteWithStats[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const sites = await getApprovedSites();
 
   // 全ての承認済みレビューを一度に取得（効率化）
@@ -390,6 +414,9 @@ export async function getSitesWithStats(): Promise<SiteWithStats[]> {
       screenshot_url: site.screenshotUrl // snake_caseエイリアス
     };
   });
+
+  // キャッシュに保存
+  setCache(cacheKey, sitesWithStats);
 
   return sitesWithStats;
 }

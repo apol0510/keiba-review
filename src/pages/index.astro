@@ -4,9 +4,11 @@ import SiteCard from '../components/SiteCard.astro';
 import ReviewCard from '../components/ReviewCard.astro';
 import { getSitesWithStats, getLatestReviews, categoryLabels } from '../lib/airtable';
 
-// データ取得
-let sites = await getSitesWithStats();
-const latestReviews = await getLatestReviews(6);
+// データ取得（並列実行でさらに高速化）
+const [sites, latestReviews] = await Promise.all([
+  getSitesWithStats(),
+  getLatestReviews(6)
+]);
 
 // 表示優先度でソート（高い順）、同じ優先度の場合は口コミ数順
 sites.sort((a, b) => {
