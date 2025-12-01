@@ -23,11 +23,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run daily reviews script
+      - name: Run daily reviews script (v2 - improved)
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/run-daily-reviews.cjs
+        run: node scripts/run-daily-reviews-v2.cjs
 
       - name: Summary
         run: |
