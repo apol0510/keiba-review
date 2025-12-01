@@ -16,6 +16,10 @@ export default defineConfig({
       // チャンクサイズ最適化
       rollupOptions: {
         output: {
+          // ハッシュ付きファイル名でブラウザキャッシュ対策
+          entryFileNames: 'entry.[hash].js',
+          chunkFileNames: 'chunks/[name].[hash].js',
+          assetFileNames: 'assets/[name].[hash][extname]',
           manualChunks: {
             'react-vendor': ['react', 'react-dom'],
             'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
