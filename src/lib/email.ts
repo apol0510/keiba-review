@@ -29,8 +29,7 @@ export async function notifyAdminNewSite(siteData: {
   const categoryLabels: Record<string, string> = {
     nankan: '南関競馬',
     chuo: '中央競馬',
-    chihou: '地方競馬',
-    other: 'その他',
+    chihou: '地方競馬'
   };
 
   const msg = {

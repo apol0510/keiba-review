@@ -12,7 +12,7 @@ import { getSiteBySlug, getReviewsBySiteId, getSitesWithStats, categoryLabels } 
 const { slug } = Astro.params;
 
 // カテゴリ一覧
-const categories = ['nankan', 'chuo', 'chihou', 'other'];
+const categories = ['nankan', 'chuo', 'chihou'];
 const isCategory = categories.includes(slug as string);
 
 // カテゴリページ用のデータ
@@ -63,8 +63,7 @@ if (isCategory) {
   const categoryDescriptions: Record<string, string> = {
     nankan: '南関競馬（大井・川崎・船橋・浦和）の予想サイト',
     chuo: 'JRA中央競馬の予想サイト',
-    chihou: '全国の地方競馬の予想サイト',
-    other: 'その他の競馬予想サイト',
+    chihou: '全国の地方競馬の予想サイト'
   };
 
   categoryData = {

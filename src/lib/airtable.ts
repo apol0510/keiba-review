@@ -21,7 +21,7 @@ export async function getAirtableConfig() {
 }
 
 // 型定義
-export type Category = 'nankan' | 'chuo' | 'chihou' | 'other';
+export type Category = 'nankan' | 'chuo' | 'chihou';
 export type SiteStatus = 'active' | 'pending' | 'rejected';
 export type ReviewStatus = 'approved' | 'pending' | 'spam';
 
@@ -339,8 +339,7 @@ export async function getStats() {
 export const categoryLabels: Record<Category, string> = {
   nankan: '南関競馬',
   chuo: '中央競馬',
-  chihou: '地方競馬',
-  other: 'その他'
+  chihou: '地方競馬'
 };
 
 // 統計付きサイト情報取得（トップページ用）
