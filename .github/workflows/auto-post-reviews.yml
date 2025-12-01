@@ -1,0 +1,35 @@
+name: Auto Post Reviews Daily
+
+on:
+  schedule:
+    # 毎日AM4時（JST）に実行（UTC 19:00）
+    - cron: '0 19 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  post-reviews:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run daily reviews script
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node scripts/run-daily-reviews.cjs
+
+      - name: Summary
+        run: |
+          echo "✅ 毎日の口コミ自動投稿が完了しました"
+          echo "📅 実行日時: $(date)"

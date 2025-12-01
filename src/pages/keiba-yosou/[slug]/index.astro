@@ -31,6 +31,7 @@ let siteData: {
   reviews: any[];
   ratingDistribution: { rating: number; count: number; percentage: number }[];
   sortBy: string;
+  filterRating: string | null;
   breadcrumbItems: { label: string; href?: string }[];
   structuredData: any;
 } | null = null;
@@ -87,12 +88,32 @@ if (isCategory) {
 
   const url = new URL(Astro.request.url);
   const sortBy = (url.searchParams.get('sort') as 'newest' | 'rating' | 'helpful') || 'newest';
+  const filterRating = url.searchParams.get('filter_rating');
 
-  const reviews = await getReviewsBySiteId(site.id, sortBy);
+  let reviews = await getReviewsBySiteId(site.id, sortBy);
+  const allReviews = reviews; // 評価分布用に全口コミを保持
 
+  // 統計情報を計算してsiteオブジェクトに追加
+  const reviewCount = allReviews.length;
+  const averageRating = reviewCount > 0
+    ? allReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+    : null;
+
+  site.review_count = reviewCount;
+  site.average_rating = averageRating;
+
+  // 星評価でフィルタリング
+  if (filterRating) {
+    const rating = parseInt(filterRating);
+    if (rating >= 1 && rating <= 5) {
+      reviews = reviews.filter(r => r.rating === rating);
+    }
+  }
+
+  // 評価分布は全口コミから計算
   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
-    const count = reviews.filter((r) => r.rating === rating).length;
-    const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+    const count = allReviews.filter((r) => r.rating === rating).length;
+    const percentage = allReviews.length > 0 ? (count / allReviews.length) * 100 : 0;
     return { rating, count, percentage };
   });
 
@@ -104,7 +125,7 @@ if (isCategory) {
     image: site.screenshot_url,
     url: `https://keiba-review.com/keiba-yosou/${site.slug}/`,
     aggregateRating:
-      reviews.length > 0
+      reviews.length > 0 && site.average_rating
         ? {
             '@type': 'AggregateRating',
             ratingValue: site.average_rating.toFixed(1),
@@ -133,6 +154,7 @@ if (isCategory) {
     reviews,
     ratingDistribution,
     sortBy,
+    filterRating,
     breadcrumbItems: [
       { label: 'サイト一覧', href: '/keiba-yosou/' },
       { label: categoryLabels[site.category], href: `/keiba-yosou/${site.category}/` },
@@ -235,7 +257,7 @@ if (isCategory) {
 ) : siteData ? (
   <BaseLayout
     title={`${siteData.site.name}の口コミ・評判`}
-    description={`${siteData.site.name}の口コミ${siteData.site.review_count}件を掲載。平均評価${siteData.site.average_rating.toFixed(1)}★。実際の利用者による評価を確認できます。`}
+    description={`${siteData.site.name}の口コミ${siteData.site.review_count}件を掲載。${siteData.site.average_rating ? `平均評価${siteData.site.average_rating.toFixed(1)}★。` : ''}実際の利用者による評価を確認できます。`}
     ogImage={`/og/${siteData.site.slug}.png`}
   >
     <script type="application/ld+json" set:html={JSON.stringify(siteData.structuredData)} />
@@ -282,10 +304,10 @@ if (isCategory) {
             </div>
 
             <div class="flex items-center gap-4 mb-4">
-              <StarRating rating={Math.round(siteData.site.average_rating)} size="lg" />
+              <StarRating rating={siteData.site.average_rating ? Math.round(siteData.site.average_rating) : 0} size="lg" />
               <div>
                 <span class="text-2xl font-bold text-gray-900">
-                  {siteData.site.average_rating.toFixed(1)}
+                  {siteData.site.average_rating ? siteData.site.average_rating.toFixed(1) : '0.0'}
                 </span>
                 <span class="text-gray-600">/ 5.0</span>
                 <span class="text-sm text-gray-500 ml-2">({siteData.site.review_count}件の口コミ)</span>
@@ -363,7 +385,42 @@ if (isCategory) {
                     <option value="rating" selected={siteData.sortBy === 'rating'}>評価順</option>
                     <option value="helpful" selected={siteData.sortBy === 'helpful'}>参考になった順</option>
                   </select>
+                  {siteData.filterRating && <input type="hidden" name="filter_rating" value={siteData.filterRating} />}
                 </form>
+              </div>
+            </div>
+
+            <!-- Star Rating Filter -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-medium text-gray-700 mr-2">評価で絞り込み:</span>
+                <a
+                  href={`?${siteData.sortBy !== 'newest' ? `sort=${siteData.sortBy}` : ''}`}
+                  class={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    !siteData.filterRating
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  すべて
+                </a>
+                {
+                  [5, 4, 3, 2, 1].map((rating) => (
+                    <a
+                      href={`?filter_rating=${rating}${siteData.sortBy !== 'newest' ? `&sort=${siteData.sortBy}` : ''}`}
+                      class={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
+                        siteData.filterRating === rating.toString()
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span>{rating}</span>
+                      <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                      </svg>
+                    </a>
+                  ))
+                }
               </div>
             </div>
 

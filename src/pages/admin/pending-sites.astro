@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getAirtableConfig } from '../../lib/airtable';
+import { getAirtableConfig, categoryLabels } from '../../lib/airtable';
 import Airtable from 'airtable';
 
 const { isDemoMode, apiKey, baseId } = await getAirtableConfig();
@@ -34,13 +34,6 @@ if (!isDemoMode && apiKey && baseId) {
     console.error('Error fetching pending sites:', error);
   }
 }
-
-const categoryLabels: Record<string, string> = {
-  nankan: '南関競馬',
-  chuo: '中央競馬',
-  chihou: '地方競馬',
-  other: 'その他',
-};
 ---
 
 <BaseLayout title="未承認サイト一覧 - 管理画面" description="未承認サイトの管理">

@@ -1,0 +1,114 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+  searchParams?: Record<string, string>;
+}
+
+const { currentPage, totalPages, baseUrl, searchParams = {} } = Astro.props;
+
+// URLパラメータを構築
+function buildUrl(page: number): string {
+  const params = new URLSearchParams(searchParams);
+  if (page > 1) {
+    params.set('page', page.toString());
+  } else {
+    params.delete('page');
+  }
+  const queryString = params.toString();
+  return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+}
+
+// ページ番号の配列を生成（最大7ページ表示）
+function getPageNumbers(): (number | 'ellipsis')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: (number | 'ellipsis')[] = [1];
+
+  if (currentPage > 3) {
+    pages.push('ellipsis');
+  }
+
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  if (currentPage < totalPages - 2) {
+    pages.push('ellipsis');
+  }
+
+  if (totalPages > 1) {
+    pages.push(totalPages);
+  }
+
+  return pages;
+}
+
+const pages = getPageNumbers();
+---
+
+{totalPages > 1 && (
+  <div class="flex items-center justify-center gap-2 mt-8">
+    <!-- Previous Button -->
+    {currentPage > 1 ? (
+      <a
+        href={buildUrl(currentPage - 1)}
+        class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+        aria-label="前のページ"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </a>
+    ) : (
+      <span class="px-3 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </span>
+    )}
+
+    <!-- Page Numbers -->
+    {pages.map((page) =>
+      page === 'ellipsis' ? (
+        <span class="px-3 py-2 text-gray-500">...</span>
+      ) : page === currentPage ? (
+        <span class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">
+          {page}
+        </span>
+      ) : (
+        <a
+          href={buildUrl(page)}
+          class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          {page}
+        </a>
+      )
+    )}
+
+    <!-- Next Button -->
+    {currentPage < totalPages ? (
+      <a
+        href={buildUrl(currentPage + 1)}
+        class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+        aria-label="次のページ"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </a>
+    ) : (
+      <span class="px-3 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </span>
+    )}
+  </div>
+)}
