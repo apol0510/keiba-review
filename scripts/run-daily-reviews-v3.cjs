@@ -35,6 +35,54 @@ const categoryUsernamePrefixes = {
 };
 
 /**
+ * カテゴリ別の禁止ワード
+ */
+const categoryForbiddenWords = {
+  chuo: [
+    // 南関競馬関連
+    'ナイター競馬', 'ナイター', '南関', 'NANKAN', '南関競馬',
+    '大井競馬', '川崎競馬', '船橋競馬', '浦和競馬',
+    '大井', '川崎', '船橋', '浦和',
+    'TCK', // 東京シティ競馬（大井）
+
+    // 地方競馬関連
+    '地方競馬', 'NAR', '園田', '金沢', '名古屋', '高知',
+    '笠松', '門別', '盛岡', '水沢', '浦和', '船橋',
+    'ばんえい', 'ホッカイドウ競馬'
+  ],
+  nankan: [
+    // 中央競馬関連（南関競馬に不要）
+    'G1', 'GⅠ', 'G2', 'GⅡ', 'G3', 'GⅢ',
+    '有馬記念', '日本ダービー', '天皇賞', '宝塚記念',
+    '菊花賞', '皐月賞', '桜花賞', 'オークス',
+    '東京競馬場', '中山競馬場', '阪神競馬場', '京都競馬場',
+    '中京競馬場', '新潟競馬場', '福島競馬場', '小倉競馬場'
+  ],
+  chihou: [
+    // 中央競馬関連
+    'JRA', 'G1', 'GⅠ', '有馬記念', '日本ダービー',
+
+    // 南関競馬関連（他の地方競馬に不要）
+    '南関', 'NANKAN', '南関競馬', 'TCK'
+  ]
+};
+
+/**
+ * 口コミに禁止ワードが含まれているかチェック
+ */
+function containsForbiddenWords(text, category) {
+  const forbiddenWords = categoryForbiddenWords[category] || [];
+
+  for (const word of forbiddenWords) {
+    if (text.includes(word)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * テキストファイルから口コミを読み込み
  */
 function loadReviewsFromFile(filePath) {
@@ -158,8 +206,34 @@ function generateReviewByRating(siteName, rating, category, allReviews) {
     };
   }
 
-  // ランダムに口コミを選択
-  const selectedReview = reviewList[Math.floor(Math.random() * reviewList.length)];
+  // カテゴリに適した口コミを探す（最大20回試行）
+  let selectedReview = null;
+  let attempts = 0;
+  const maxAttempts = 20;
+
+  while (attempts < maxAttempts) {
+    const candidate = reviewList[Math.floor(Math.random() * reviewList.length)];
+    const fullText = candidate.title + ' ' + candidate.content;
+
+    // 禁止ワードチェック
+    if (!containsForbiddenWords(fullText, category)) {
+      selectedReview = candidate;
+      break;
+    }
+
+    attempts++;
+  }
+
+  // 適切な口コミが見つからない場合はデフォルト
+  if (!selectedReview) {
+    console.warn(`⚠️  カテゴリ「${category}」に適した⭐${stars}の口コミが見つかりませんでした。デフォルトを使用します。`);
+    return {
+      rating: stars,
+      title: '普通のサイト',
+      content: '可もなく不可もなくといった印象です。',
+      username: 'ユーザー' + Math.floor(Math.random() * 100)
+    };
+  }
 
   // カテゴリに応じたユーザー名を生成
   const prefixes = categoryUsernamePrefixes[category] || categoryUsernamePrefixes.other;
