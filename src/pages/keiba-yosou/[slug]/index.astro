@@ -40,6 +40,9 @@ const { slug } = Astro.params;
 const categories = ['nankan', 'chuo', 'chihou'];
 const isCategory = categories.includes(slug as string);
 
+// Constants
+const MAX_REVIEWS_TO_DISPLAY = 50;
+
 // カテゴリページ用のデータ
 let categoryData: {
   category: string;
@@ -54,6 +57,7 @@ let categoryData: {
 let siteData: {
   site: any;
   reviews: any[];
+  totalReviews: number;
   ratingDistribution: { rating: number; count: number; percentage: number }[];
   sortBy: string;
   filterRating: string | null;
@@ -195,6 +199,7 @@ if (isCategory) {
   siteData = {
     site,
     reviews,
+    totalReviews,
     ratingDistribution,
     sortBy,
     filterRating,
@@ -410,7 +415,7 @@ if (isCategory) {
               <div class="flex items-center gap-3">
                 <span class="text-sm text-gray-600">
                   {siteData.reviews.length}件
-                  {totalReviews > MAX_REVIEWS_TO_DISPLAY && (
+                  {siteData.totalReviews > MAX_REVIEWS_TO_DISPLAY && (
                     <span class="text-gray-500">（最新{MAX_REVIEWS_TO_DISPLAY}件を表示）</span>
                   )}
                 </span>
