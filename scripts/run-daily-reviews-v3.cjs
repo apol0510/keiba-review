@@ -24,14 +24,45 @@ if (!apiKey || !baseId) {
 
 const base = new Airtable({ apiKey }).base(baseId);
 
+// 最近使用したユーザー名を記録（重複防止）
+const recentUsernames = new Set();
+
 /**
- * カテゴリ別のユーザー名プレフィックス
+ * カテゴリ別のユーザー名プレフィックス（大幅に増量）
  */
 const categoryUsernamePrefixes = {
-  nankan: ['南関', 'NANKAN', '南関ファン', '大井', '川崎', '船橋', '浦和'],
-  chuo: ['JRA', '中央', '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者'],
-  chihou: ['地方競馬', 'NAR', '地方', '園田', '金沢', '名古屋', '高知'],
-  other: ['競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者']
+  nankan: [
+    '南関', 'NANKAN', '南関ファン', '大井', '川崎', '船橋', '浦和',
+    '南関競馬', 'ナイター', 'ナイター競馬', 'TCK',
+    '大井競馬', '川崎競馬', '船橋競馬', '浦和競馬',
+    '南関愛好家', '南関通', '南関マニア', 'ナイター派',
+    '大井ファン', '川崎ファン', '船橋ファン', '浦和ファン',
+    '南関歴10年', '南関初心者', '南関ベテラン', 'ナイター党',
+    'TCKファン', '南関競馬好き', 'ナイター大好き'
+  ],
+  chuo: [
+    'JRA', '中央', '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者',
+    '中央競馬', 'JRAファン', '競馬大好き', '馬券師', '競馬歴10年',
+    '週末競馬', '競馬マニア', '競馬通', 'うま太郎', 'うまうま',
+    'サラリーマン馬券', '競馬初心者', '競馬ベテラン', 'JRA派',
+    '予想屋', '競馬ラバー', '馬券生活', '的中師',
+    'G1好き', '重賞ファン', '競馬愛好家', '馬券研究家',
+    '週末ギャンブラー', '競馬道', 'ターフファン', '競馬依存',
+    '回収率追求', '本命党', '穴党', '三連単狙い'
+  ],
+  chihou: [
+    '地方競馬', 'NAR', '地方', '園田', '金沢', '名古屋', '高知',
+    '地方競馬ファン', 'NAR派', '地方通', '地方マニア',
+    '園田競馬', '金沢競馬', '名古屋競馬', '高知競馬',
+    '笠松', '門別', '盛岡', '水沢', 'ばんえい',
+    '地方競馬好き', '地方ベテラン', '地方初心者', '地方愛好家',
+    '地方専門', 'NAR専', '園田ファン', '金沢ファン',
+    '名古屋ファン', '高知ファン', '笠松ファン', '門別ファン'
+  ],
+  other: [
+    '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者',
+    '競馬好き', '馬券師', '予想屋', '競馬マニア'
+  ]
 };
 
 /**
@@ -272,11 +303,53 @@ function generateReviewByRating(siteName, rating, category, allReviews) {
     };
   }
 
-  // カテゴリに応じたユーザー名を生成
+  // カテゴリに応じたユーザー名を生成（重複防止機能付き）
   const prefixes = categoryUsernamePrefixes[category] || categoryUsernamePrefixes.other;
-  const usernamePrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-  const usernameSuffix = ['太郎', 'さん', 'ユーザー', '好き', 'マニア', '愛好家', '馬券師', 'ファン'];
-  const username = `${usernamePrefix}${usernameSuffix[Math.floor(Math.random() * usernameSuffix.length)]}${Math.floor(Math.random() * 100)}`;
+  const usernameSuffixes = [
+    '太郎', 'さん', 'ユーザー', '好き', 'マニア', '愛好家', '馬券師', 'ファン',
+    '次郎', '三郎', '四郎', '花子', '一郎', 'くん', 'ちゃん',
+    '先生', '師匠', '野郎', '兄さん', '姉さん', 'おじさん',
+    '親父', '野郎', '小僧', 'ボーイ', 'ガール', 'マン',
+    '王', '神', 'キング', 'クイーン', 'プリンス', 'プリンセス',
+    'マスター', '名人', '達人', '鉄人', '職人', '玄人',
+    '素人', '見習い', '修行中', '研究家', '評論家', 'アナリスト'
+  ];
+
+  let username = '';
+  let attempts = 0;
+  const maxAttempts = 50;
+
+  // 重複しないユーザー名を生成（最大50回試行）
+  while (attempts < maxAttempts) {
+    const usernamePrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const usernameSuffix = usernameSuffixes[Math.floor(Math.random() * usernameSuffixes.length)];
+    const usernameNumber = Math.floor(Math.random() * 1000); // 0-999に拡大
+
+    const candidate = `${usernamePrefix}${usernameSuffix}${usernameNumber}`;
+
+    // 最近使用していないユーザー名であれば採用
+    if (!recentUsernames.has(candidate)) {
+      username = candidate;
+      recentUsernames.add(candidate);
+
+      // メモリ節約: 100件を超えたら古いものを削除
+      if (recentUsernames.size > 100) {
+        const firstItem = recentUsernames.values().next().value;
+        recentUsernames.delete(firstItem);
+      }
+
+      break;
+    }
+
+    attempts++;
+  }
+
+  // 50回試行して見つからない場合はタイムスタンプを追加
+  if (!username) {
+    const usernamePrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const usernameSuffix = usernameSuffixes[Math.floor(Math.random() * usernameSuffixes.length)];
+    username = `${usernamePrefix}${usernameSuffix}${Date.now() % 10000}`;
+  }
 
   return {
     rating: stars,
