@@ -39,9 +39,7 @@ const fallbackSVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
     class={className}
     loading={loading}
     decoding="async"
-    onload="this.style.opacity='1'"
     onerror={`this.src='${fallbackSVG}'`}
-    style="opacity: 0; transition: opacity 0.3s;"
   />
 ) : isLocal ? (
   <!-- ローカル画像（src/assets/）：Astro最適化 -->
@@ -65,8 +63,6 @@ const fallbackSVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
     class={className}
     loading={loading}
     decoding="async"
-    onload="this.style.opacity='1'"
     onerror={`this.src='${fallbackSVG}'`}
-    style="opacity: 0; transition: opacity 0.3s;"
   />
 )}
