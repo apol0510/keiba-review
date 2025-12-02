@@ -25,3 +25,14 @@ pnpm-debug.log*
 
 # Local Netlify folder
 .netlify
+
+# Other projects (to prevent accidental access)
+../nankan-analytics/
+../nankan-analytics-pro/
+../nankan-beginner/
+../nankan-course/
+../nankan-inteli/
+../nankan-keiba/
+../nankankeiba/
+../nankankeiba.jp/
+../intelligence/
