@@ -36,7 +36,7 @@ ${sites
   .map(
     (site) => `  <url>
     <loc>${SITE_URL}/keiba-yosou/${site.slug}/</loc>
-    <lastmod>${new Date(site.updated_at).toISOString().split('T')[0]}</lastmod>
+    <lastmod>${site.createdAt ? new Date(site.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>`

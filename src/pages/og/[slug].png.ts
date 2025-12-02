@@ -1,6 +1,15 @@
 import type { APIRoute } from 'astro';
-import { getSiteBySlug, categoryLabels } from '../../lib/airtable';
+import { getSiteBySlug, getApprovedSites, categoryLabels } from '../../lib/airtable';
 import { generateOgImage } from '../../lib/og-image';
+
+// 静的パス生成（ビルド時に全OGP画像を事前生成）
+export async function getStaticPaths() {
+  const sites = await getApprovedSites();
+
+  return sites.map(site => ({
+    params: { slug: site.slug }
+  }));
+}
 
 export const GET: APIRoute = async ({ params }) => {
   const { slug } = params;

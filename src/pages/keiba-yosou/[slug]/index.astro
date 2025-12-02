@@ -7,7 +7,32 @@ import SiteCard from '../../../components/SiteCard.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 import ReviewForm from '../../../components/ReviewForm';
 import PricingInfo from '../../../components/PricingInfo.astro';
-import { getSiteBySlug, getReviewsBySiteId, getSitesWithStats, categoryLabels } from '../../../lib/airtable';
+import OptimizedImage from '../../../components/OptimizedImage.astro';
+import { getSiteBySlug, getReviewsBySiteId, getSitesWithStats, categoryLabels, getApprovedSites } from '../../../lib/airtable';
+import { getScreenshotUrl, getFallbackImage } from '../../../lib/screenshot-helper';
+
+// 静的パス生成（ビルド時に全ページを事前生成）
+export async function getStaticPaths() {
+  console.log('🔨 ビルド時: 全ページを事前生成します...');
+
+  const categories = ['nankan', 'chuo', 'chihou'];
+  const sites = await getApprovedSites();
+
+  console.log(`📄 生成ページ数: ${categories.length}カテゴリ + ${sites.length}サイト = ${categories.length + sites.length}ページ`);
+
+  const paths = [
+    // カテゴリページ
+    ...categories.map(category => ({
+      params: { slug: category }
+    })),
+    // サイト詳細ページ（全サイトを事前生成）
+    ...sites.map(site => ({
+      params: { slug: site.slug }
+    }))
+  ];
+
+  return paths;
+}
 
 const { slug } = Astro.params;
 
@@ -44,14 +69,15 @@ if (isCategory) {
   const url = new URL(Astro.request.url);
   const sortBy = url.searchParams.get('sort') || 'popular';
 
-  let sites = await getSitesWithStats(category);
+  const allSites = await getSitesWithStats();
+  let sites = allSites.filter(s => s.category === category);
 
   switch (sortBy) {
     case 'newest':
       sites.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       break;
     case 'rating':
-      sites.sort((a, b) => b.average_rating - a.average_rating);
+      sites.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
       break;
     case 'reviews':
       sites.sort((a, b) => b.review_count - a.review_count);
@@ -89,17 +115,30 @@ if (isCategory) {
   const sortBy = (url.searchParams.get('sort') as 'newest' | 'rating' | 'helpful') || 'newest';
   const filterRating = url.searchParams.get('filter_rating');
 
-  let reviews = await getReviewsBySiteId(site.id, sortBy);
+  let reviews = await getReviewsBySiteId(site.id);
   const allReviews = reviews; // 評価分布用に全口コミを保持
+
+  // ソート処理
+  switch (sortBy) {
+    case 'rating':
+      reviews.sort((a, b) => b.rating - a.rating);
+      break;
+    case 'helpful':
+      // 仮実装: 評価が高い順
+      reviews.sort((a, b) => b.rating - a.rating);
+      break;
+    default: // newest
+      reviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
 
   // 統計情報を計算してsiteオブジェクトに追加
   const reviewCount = allReviews.length;
   const averageRating = reviewCount > 0
     ? allReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-    : null;
+    : undefined;
 
-  site.review_count = reviewCount;
-  site.average_rating = averageRating;
+  site.reviewCount = reviewCount;
+  site.averageRating = averageRating;
 
   // 星評価でフィルタリング
   if (filterRating) {
@@ -121,14 +160,14 @@ if (isCategory) {
     '@type': 'Product',
     name: site.name,
     description: site.description,
-    image: site.screenshot_url,
+    image: site.screenshotUrl,
     url: `https://keiba-review.com/keiba-yosou/${site.slug}/`,
     aggregateRating:
-      reviews.length > 0 && site.average_rating
+      reviews.length > 0 && site.averageRating
         ? {
             '@type': 'AggregateRating',
-            ratingValue: site.average_rating.toFixed(1),
-            reviewCount: site.review_count.toString(),
+            ratingValue: site.averageRating.toFixed(1),
+            reviewCount: site.reviewCount.toString(),
             bestRating: '5',
             worstRating: '1',
           }
@@ -137,9 +176,9 @@ if (isCategory) {
       '@type': 'Review',
       author: {
         '@type': 'Person',
-        name: review.user_name,
+        name: review.username,
       },
-      datePublished: review.created_at.split('T')[0],
+      datePublished: review.createdAt.split('T')[0],
       reviewRating: {
         '@type': 'Rating',
         ratingValue: review.rating.toString(),
@@ -256,7 +295,7 @@ if (isCategory) {
 ) : siteData ? (
   <BaseLayout
     title={`${siteData.site.name}の口コミ・評判`}
-    description={`${siteData.site.name}の口コミ${siteData.site.review_count}件を掲載。${siteData.site.average_rating ? `平均評価${siteData.site.average_rating.toFixed(1)}★。` : ''}実際の利用者による評価を確認できます。`}
+    description={`${siteData.site.name}の口コミ${siteData.site.reviewCount}件を掲載。${siteData.site.averageRating ? `平均評価${siteData.site.averageRating.toFixed(1)}★。` : ''}実際の利用者による評価を確認できます。`}
     ogImage={`/og/${siteData.site.slug}.png`}
   >
     <script type="application/ld+json" set:html={JSON.stringify(siteData.structuredData)} />
@@ -269,29 +308,15 @@ if (isCategory) {
         <div class="md:flex">
           <!-- Screenshot -->
           <div class="md:w-1/3">
-            <div class="aspect-video bg-gray-100 relative">
-              {
-                siteData.site.screenshotUrl ? (
-                  <img
-                    src={siteData.site.screenshotUrl}
-                    alt={`${siteData.site.name}のスクリーンショット`}
-                    class="w-full h-full object-cover"
-                    loading="eager"
-                    decoding="async"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                  />
-                ) : null
-              }
-              <div class="w-full h-full flex items-center justify-center text-gray-400 absolute inset-0" style={siteData.site.screenshotUrl ? 'display: none;' : ''}>
-                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
+            <div class="aspect-video bg-gray-100 relative overflow-hidden">
+              <OptimizedImage
+                src={getScreenshotUrl(siteData.site.slug, siteData.site.screenshot_url)}
+                alt={`${siteData.site.name}のスクリーンショット`}
+                width={600}
+                height={400}
+                loading="eager"
+                class="w-full h-full object-cover"
+              />
             </div>
           </div>
 
@@ -305,13 +330,13 @@ if (isCategory) {
             </div>
 
             <div class="flex items-center gap-4 mb-4">
-              <StarRating rating={siteData.site.average_rating || 0} size="lg" />
+              <StarRating rating={siteData.site.averageRating || 0} size="lg" />
               <div>
                 <span class="text-2xl font-bold text-gray-900">
-                  {siteData.site.average_rating ? siteData.site.average_rating.toFixed(1) : '0.0'}
+                  {siteData.site.averageRating ? siteData.site.averageRating.toFixed(1) : '0.0'}
                 </span>
                 <span class="text-gray-600">/ 5.0</span>
-                <span class="text-sm text-gray-500 ml-2">({siteData.site.review_count}件の口コミ)</span>
+                <span class="text-sm text-gray-500 ml-2">({siteData.site.reviewCount}件の口コミ)</span>
               </div>
             </div>
 

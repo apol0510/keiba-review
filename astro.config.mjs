@@ -3,13 +3,11 @@ import { defineConfig } from 'astro/config';
 
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
-import netlify from '@astrojs/netlify';
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [react()],
-  output: 'server',
-  adapter: netlify(),
+  output: 'static', // 完全静的生成（Airtableから事前生成）
   vite: {
     plugins: [tailwindcss()],
     build: {
@@ -32,9 +30,16 @@ export default defineConfig({
     // アセットのインライン化閾値（4KB以下のものはインライン化）
     assetsInlineLimit: 4096,
   },
-  // 画像最適化
+  // 画像最適化（Netlify Image CDN対応）
   image: {
-    domains: ['fonts.googleapis.com', 'fonts.gstatic.com'],
+    service: {
+      entrypoint: 'astro/assets/services/sharp',
+      config: {
+        limitInputPixels: false,
+      },
+    },
+    domains: ['fonts.googleapis.com', 'fonts.gstatic.com', 'image.thum.io'],
+    remotePatterns: [{ protocol: 'https' }],
   },
   // プリフェッチ設定
   prefetch: {

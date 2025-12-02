@@ -1,0 +1,72 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+  sizes?: string;
+}
+
+const {
+  src,
+  alt,
+  width = 600,
+  height = 400,
+  class: className = '',
+  loading = 'lazy',
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
+} = Astro.props;
+
+// ローカル画像かどうか判定
+const isLocal = src.startsWith('/') || src.startsWith('./');
+const isPublicAsset = src.startsWith('/screenshots/');
+
+// フォールバック画像
+const fallbackSVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'%3E%3Crect width='${width}' height='${height}' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='24' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E`;
+---
+
+{isPublicAsset ? (
+  <!-- ローカル画像（public/screenshots/）：最速 -->
+  <img
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    class={className}
+    loading={loading}
+    decoding="async"
+    onload="this.style.opacity='1'"
+    onerror={`this.src='${fallbackSVG}'`}
+    style="opacity: 0; transition: opacity 0.3s;"
+  />
+) : isLocal ? (
+  <!-- ローカル画像（src/assets/）：Astro最適化 -->
+  <Image
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    class={className}
+    loading={loading}
+    format="webp"
+    quality={85}
+  />
+) : (
+  <!-- 外部画像：遅延読み込み + フォールバック -->
+  <img
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    class={className}
+    loading={loading}
+    decoding="async"
+    onload="this.style.opacity='1'"
+    onerror={`this.src='${fallbackSVG}'`}
+    style="opacity: 0; transition: opacity 0.3s;"
+  />
+)}

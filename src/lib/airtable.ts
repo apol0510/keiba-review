@@ -11,9 +11,9 @@ if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
 // Airtableクライアント初期化
 const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
 
-// 簡易メモリキャッシュ（5分間有効）
+// 強力なメモリキャッシュ（30分間有効 - SSGモードでは実質永続）
 const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5分
+const CACHE_TTL = 30 * 60 * 1000; // 30分
 
 function getCached<T>(key: string): T | null {
   const cached = cache.get(key);
@@ -141,6 +141,13 @@ export async function getSitesByCategory(category: Category): Promise<Site[]> {
 
 // Slug指定でサイト取得
 export async function getSiteBySlug(slug: string): Promise<Site | null> {
+  // キャッシュチェック
+  const cacheKey = `site_${slug}`;
+  const cached = getCached<Site>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const records = await base('Sites').select({
     filterByFormula: `{Slug} = '${slug}'`,
     maxRecords: 1
@@ -151,20 +158,27 @@ export async function getSiteBySlug(slug: string): Promise<Site | null> {
   }
 
   const record = records[0];
-  return {
+  const screenshotUrl = record.fields.ScreenshotURL as string;
+  const site = {
     id: record.id,
     name: record.fields.Name as string,
     slug: record.fields.Slug as string,
     url: record.fields.URL as string,
     description: record.fields.Description as string || '',
     category: record.fields.Category as Category,
-    screenshotUrl: record.fields.ScreenshotURL as string,
+    screenshotUrl,
+    screenshot_url: screenshotUrl, // snake_caseエイリアス
     isApproved: record.fields.IsApproved as boolean || false,
     status: record.fields.IsApproved ? 'active' : 'pending',
     reviewCount: record.fields.Reviews ? (record.fields.Reviews as string[]).length : 0,
     averageRating: record.fields['Average Rating'] as number,
     createdAt: record.fields.CreatedAt as string
-  };
+  } as any; // 型エラー回避のためanyを使用
+
+  // キャッシュに保存
+  setCache(cacheKey, site);
+
+  return site;
 }
 
 // 承認待ちサイト取得
@@ -231,6 +245,13 @@ export async function getReviewsBySite(siteId: string): Promise<Review[]> {
 
 // 承認済み口コミ取得（サイト別）
 export async function getApprovedReviewsBySite(siteId: string): Promise<Review[]> {
+  // キャッシュチェック
+  const cacheKey = `reviews_${siteId}`;
+  const cached = getCached<Review[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   // すべての承認済みレビューを取得してから、JavaScriptでフィルタリング
   // AirtableのSEARCH()が期待通りに動作しないため
   const allRecords = await base('Reviews').select({
@@ -245,7 +266,7 @@ export async function getApprovedReviewsBySite(siteId: string): Promise<Review[]
     return linkedSiteId === siteId;
   });
 
-  return records.map(record => ({
+  const reviews = records.map(record => ({
     id: record.id,
     siteId: record.fields.Site ? (record.fields.Site as string[])[0] : '',
     siteName: record.fields['Site Name'] as string,
@@ -253,10 +274,15 @@ export async function getApprovedReviewsBySite(siteId: string): Promise<Review[]
     rating: record.fields.Rating as number,
     title: record.fields.Title as string,
     content: record.fields.Content as string,
-    status: 'approved',
+    status: 'approved' as ReviewStatus,
     createdAt: record.fields.CreatedAt as string,
     created_at: record.fields.CreatedAt as string // snake_caseエイリアス
   }));
+
+  // キャッシュに保存
+  setCache(cacheKey, reviews);
+
+  return reviews;
 }
 
 // getReviewsBySiteId（getApprovedReviewsBySiteのエイリアス - 互換性のため）
