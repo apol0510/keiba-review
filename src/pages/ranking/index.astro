@@ -1,0 +1,219 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
+import { getSitesWithStats, categoryLabels } from '../../lib/airtable';
+
+// 全サイトを取得
+let sites = await getSitesWithStats();
+
+// ランキング計算（評価×口コミ数の重み付けスコア）
+sites = sites.map(site => ({
+  ...site,
+  rankingScore: (site.average_rating || 0) * Math.log(site.review_count + 1) * 10
+}));
+
+// スコア順にソート
+sites.sort((a, b) => b.rankingScore - a.rankingScore);
+
+// TOP 30のみ表示
+const topSites = sites.slice(0, 30);
+
+const breadcrumbItems = [{ label: '総合ランキング' }];
+
+// メタディスクリプション
+const description = '競馬予想サイトの総合ランキング。口コミ評価と投稿数から算出した信頼性の高いランキングで、優良サイトを比較できます。';
+---
+
+<BaseLayout
+  title="競馬予想サイト 総合ランキング TOP30"
+  description={description}
+>
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <Breadcrumb items={breadcrumbItems} />
+
+    <!-- ヘッダー -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-3">
+        🏆 競馬予想サイト 総合ランキング
+      </h1>
+      <p class="text-gray-600 leading-relaxed">
+        口コミ評価と投稿数から算出した信頼性の高いランキングです。ユーザーの生の声をもとに、本当に使える競馬予想サイトを厳選しました。
+      </p>
+    </div>
+
+    <!-- カテゴリリンク -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-100">
+      <h2 class="text-lg font-bold text-gray-900 mb-4">📂 カテゴリ別ランキング</h2>
+      <div class="flex flex-wrap gap-3">
+        <a
+          href="/ranking/"
+          class="px-5 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold shadow-md hover:bg-blue-700 transition-colors"
+        >
+          総合ランキング
+        </a>
+        {
+          Object.entries(categoryLabels).map(([key, label]) => (
+            <a
+              href={`/ranking/${key}/`}
+              class="px-5 py-2.5 rounded-full bg-white text-gray-700 text-sm font-medium border-2 border-gray-200 hover:border-blue-400 hover:text-blue-600 transition-colors shadow-sm"
+            >
+              {label}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+
+    <!-- ランキング説明 -->
+    <div class="bg-amber-50 border-l-4 border-amber-400 p-5 mb-8 rounded-r-lg">
+      <h3 class="font-bold text-amber-900 mb-2 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+        </svg>
+        ランキング算出方法
+      </h3>
+      <ul class="text-sm text-amber-900 space-y-1 ml-7">
+        <li>• 口コミ評価（⭐1〜5）</li>
+        <li>• 口コミ投稿数（多いほど信頼性が高い）</li>
+        <li>• 最新の投稿状況</li>
+      </ul>
+      <p class="text-sm text-amber-800 mt-2">
+        これらを総合的に評価し、ユーザーから本当に支持されているサイトをランキング化しています。
+      </p>
+    </div>
+
+    <!-- ランキングリスト -->
+    <div class="space-y-4">
+      {topSites.map((site, index) => {
+        const rank = index + 1;
+        const medalColor =
+          rank === 1 ? 'text-yellow-500' :
+          rank === 2 ? 'text-gray-400' :
+          rank === 3 ? 'text-orange-600' :
+          'text-gray-600';
+
+        const bgClass =
+          rank === 1 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+          rank === 2 ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-300' :
+          rank === 3 ? 'bg-gradient-to-r from-orange-50 to-red-50 border-orange-200' :
+          'bg-white border-gray-200';
+
+        return (
+          <div class={`${bgClass} border-2 rounded-xl p-5 hover:shadow-lg transition-shadow`}>
+            <div class="flex items-start gap-4">
+              <!-- ランク表示 -->
+              <div class="flex-shrink-0">
+                {rank <= 3 ? (
+                  <div class={`text-4xl font-black ${medalColor}`}>
+                    {rank === 1 && '🥇'}
+                    {rank === 2 && '🥈'}
+                    {rank === 3 && '🥉'}
+                  </div>
+                ) : (
+                  <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span class="text-xl font-bold text-gray-600">{rank}</span>
+                  </div>
+                )}
+              </div>
+
+              <!-- サイト情報 -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <a
+                      href={`/keiba-yosou/${site.slug}/`}
+                      class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors inline-block"
+                    >
+                      {site.name}
+                    </a>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                        {categoryLabels[site.category]}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 評価情報 -->
+                <div class="flex flex-wrap items-center gap-4 text-sm">
+                  <div class="flex items-center gap-1">
+                    <span class="text-yellow-400">{'⭐'.repeat(Math.round(site.average_rating || 0))}</span>
+                    <span class="font-bold text-gray-900">{(site.average_rating || 0).toFixed(1)}</span>
+                  </div>
+                  <div class="text-gray-600">
+                    口コミ <span class="font-bold text-gray-900">{site.review_count}</span>件
+                  </div>
+                  {rank <= 3 && (
+                    <div class="ml-auto">
+                      <span class={`px-3 py-1 rounded-full text-xs font-bold ${
+                        rank === 1 ? 'bg-yellow-200 text-yellow-900' :
+                        rank === 2 ? 'bg-gray-200 text-gray-900' :
+                        'bg-orange-200 text-orange-900'
+                      }`}>
+                        {rank === 1 ? '👑 1位' : rank === 2 ? '2位' : '3位'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <!-- 説明文 -->
+                {site.description && (
+                  <p class="text-sm text-gray-600 mt-3 line-clamp-2">
+                    {site.description}
+                  </p>
+                )}
+
+                <!-- アクションボタン -->
+                <div class="mt-4 flex gap-2">
+                  <a
+                    href={`/keiba-yosou/${site.slug}/`}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    詳細を見る
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </a>
+                  {site.url && (
+                    <a
+                      href={site.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                    >
+                      公式サイト
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- フッター CTA -->
+    <div class="mt-12 text-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-100">
+      <h2 class="text-2xl font-bold text-gray-900 mb-3">
+        さらに詳しく比較したい方へ
+      </h2>
+      <p class="text-gray-600 mb-6">
+        全ての競馬予想サイトを見る、またはカテゴリ別に絞り込んで比較できます。
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a
+          href="/keiba-yosou/"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg"
+        >
+          全サイトを見る
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
