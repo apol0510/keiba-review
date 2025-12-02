@@ -28,6 +28,16 @@ const base = new Airtable({ apiKey }).base(baseId);
 const recentUsernames = new Set();
 
 /**
+ * サイトタイプ別の口コミ上限設定
+ * これ以上口コミが増えないようにして、不自然さを回避
+ */
+const MAX_REVIEWS_PER_SITE = {
+  malicious: 50,  // 悪質サイト: 最大50件（多くの人が被害報告するのは自然）
+  normal: 30,     // 通常サイト: 最大30件（適度な数で信頼性維持）
+  legit: 80       // 優良サイト: 最大80件（人気サイトは口コミが多い）※未実装
+};
+
+/**
  * カテゴリ別のユーザー名プレフィックス（大幅に増量）
  */
 const categoryUsernamePrefixes = {
@@ -316,11 +326,11 @@ function generateReviewByRating(siteName, rating, category, allReviews) {
   ];
 
   let username = '';
-  let attempts = 0;
-  const maxAttempts = 50;
+  let usernameAttempts = 0;
+  const maxUsernameAttempts = 50;
 
   // 重複しないユーザー名を生成（最大50回試行）
-  while (attempts < maxAttempts) {
+  while (usernameAttempts < maxUsernameAttempts) {
     const usernamePrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
     const usernameSuffix = usernameSuffixes[Math.floor(Math.random() * usernameSuffixes.length)];
     const usernameNumber = Math.floor(Math.random() * 1000); // 0-999に拡大
@@ -341,7 +351,7 @@ function generateReviewByRating(siteName, rating, category, allReviews) {
       break;
     }
 
-    attempts++;
+    usernameAttempts++;
   }
 
   // 50回試行して見つからない場合はタイムスタンプを追加
@@ -386,7 +396,20 @@ async function selectSitesToPost(maliciousSites, maxSites = 5) {
     })
   );
 
-  const sitesWithPriority = sitesWithReviewCount.map(site => {
+  // 上限に達していないサイトのみをフィルタリング
+  const sitesUnderLimit = sitesWithReviewCount.filter(site => {
+    const maxReviews = MAX_REVIEWS_PER_SITE[site.rating.type] || MAX_REVIEWS_PER_SITE.normal;
+    const isUnderLimit = site.reviewCount < maxReviews;
+
+    if (!isUnderLimit) {
+      console.log(`  ⚠️  ${site.name}: 上限到達 (${site.reviewCount}/${maxReviews}件) - スキップ`);
+    }
+
+    return isUnderLimit;
+  });
+
+  const sitesWithPriority = sitesUnderLimit.map(site => {
+    const maxReviews = MAX_REVIEWS_PER_SITE[site.rating.type] || MAX_REVIEWS_PER_SITE.normal;
     let reviewsToPost = 1;
 
     // 評価タイプに応じた投稿数
@@ -398,13 +421,18 @@ async function selectSitesToPost(maliciousSites, maxSites = 5) {
       reviewsToPost = Math.floor(Math.random() * 2) + 2; // 2-3件
     }
 
+    // 上限を超えないように調整
+    const remainingSlots = maxReviews - site.reviewCount;
+    reviewsToPost = Math.min(reviewsToPost, remainingSlots);
+
     // 優先度を計算（口コミが少ないサイトを優先）
     const priority = 1000 - site.reviewCount + Math.random() * 100;
 
     return {
       ...site,
       reviewsToPost,
-      priority
+      priority,
+      maxReviews
     };
   });
 
@@ -437,7 +465,7 @@ async function main() {
   targetSites.forEach((site, i) => {
     const typeLabel = site.rating.type === 'malicious' ? '❌悪質' :
                       site.rating.type === 'legit' ? '✅優良' : '⚪不明';
-    console.log(`  ${i + 1}. ${typeLabel} ${site.name} (現在${site.reviewCount}件 → +${site.reviewsToPost}件)`);
+    console.log(`  ${i + 1}. ${typeLabel} ${site.name} (${site.reviewCount}/${site.maxReviews}件 → +${site.reviewsToPost}件)`);
   });
   console.log('');
 
