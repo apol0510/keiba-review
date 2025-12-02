@@ -131,6 +131,11 @@ if (isCategory) {
       reviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
+  // ページサイズ最適化: 最新50件のみ表示（古いレビューは非表示）
+  const MAX_REVIEWS_TO_DISPLAY = 50;
+  const totalReviews = reviews.length;
+  reviews = reviews.slice(0, MAX_REVIEWS_TO_DISPLAY);
+
   // 統計情報を計算してsiteオブジェクトに追加
   const reviewCount = allReviews.length;
   const averageRating = reviewCount > 0
@@ -403,7 +408,12 @@ if (isCategory) {
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <h2 class="text-lg font-bold text-gray-900">口コミ一覧</h2>
               <div class="flex items-center gap-3">
-                <span class="text-sm text-gray-600">{siteData.reviews.length}件</span>
+                <span class="text-sm text-gray-600">
+                  {siteData.reviews.length}件
+                  {totalReviews > MAX_REVIEWS_TO_DISPLAY && (
+                    <span class="text-gray-500">（最新{MAX_REVIEWS_TO_DISPLAY}件を表示）</span>
+                  )}
+                </span>
                 <form method="get" class="flex items-center gap-2">
                   <label class="text-sm text-gray-600">並び替え:</label>
                   <select name="sort" class="form-input text-sm py-1 px-2 rounded border-gray-300" onchange="this.form.submit()">
