@@ -27,13 +27,46 @@ const breadcrumbItems = [
   { label: categoryLabel }
 ];
 
-const description = `${categoryLabel}の競馬予想サイトランキング。口コミ評価と投稿数から算出した信頼性の高いランキングで、JRA・中央競馬に強いサイトを比較できます。`;
+// 動的メタディスクリプション生成
+const topSiteNames = topSites.slice(0, 3).map(s => s.name).join('、');
+const description = topSites.length > 0
+  ? `${categoryLabel}の競馬予想サイトランキングTOP20を公開。${topSiteNames}など、園田・金沢・名古屋・高知などNAR地方競馬に強い予想サイトを口コミ評価で徹底比較。的中率の高い優良サイトを厳選。`
+  : `${categoryLabel}の競馬予想サイトランキング。口コミ評価と投稿数から算出した信頼性の高いランキングで、園田・金沢・名古屋・高知などに強いサイトを比較できます。`;
+
+// BreadcrumbList構造化データ
+const breadcrumbStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'ホーム',
+      item: 'https://frabjous-taiyaki-460401.netlify.app/'
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'ランキング',
+      item: 'https://frabjous-taiyaki-460401.netlify.app/ranking/'
+    },
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: categoryLabel,
+      item: `https://frabjous-taiyaki-460401.netlify.app/ranking/${category}/`
+    }
+  ]
+};
 ---
 
 <BaseLayout
   title={`${categoryLabel} 競馬予想サイト ランキング TOP20`}
   description={description}
 >
+  <!-- BreadcrumbList構造化データ -->
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbStructuredData)} />
+
   <div class="max-w-6xl mx-auto px-4 py-8">
     <Breadcrumb items={breadcrumbItems} />
 

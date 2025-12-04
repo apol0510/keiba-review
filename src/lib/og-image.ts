@@ -24,10 +24,12 @@ interface OgImageOptions {
   rating?: number;
   reviewCount?: number;
   category?: string;
+  rank?: number; // ランキング順位
+  rankLabel?: string; // ランキング種別（例：「総合」「中央競馬」）
 }
 
 export async function generateOgImage(options: OgImageOptions): Promise<Buffer> {
-  const { title, subtitle, rating, reviewCount, category } = options;
+  const { title, subtitle, rating, reviewCount, category, rank, rankLabel } = options;
 
   // フォントを読み込み
   const fontNormal = await loadGoogleFont('Noto+Sans+JP', 400);
@@ -94,6 +96,22 @@ export async function generateOgImage(options: OgImageOptions): Promise<Buffer> 
                           fontWeight: 700,
                         },
                         children: categoryLabel,
+                      },
+                    }
+                  : null,
+                rank
+                  ? {
+                      type: 'div',
+                      props: {
+                        style: {
+                          backgroundColor: rank <= 3 ? '#fbbf24' : '#10b981',
+                          color: rank <= 3 ? '#78350f' : 'white',
+                          padding: '8px 20px',
+                          borderRadius: '20px',
+                          fontSize: '24px',
+                          fontWeight: 700,
+                        },
+                        children: `${rankLabel || '総合'}${rank}位`,
                       },
                     }
                   : null,

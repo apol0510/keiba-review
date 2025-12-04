@@ -20,14 +20,38 @@ const topSites = sites.slice(0, 30);
 
 const breadcrumbItems = [{ label: '総合ランキング' }];
 
-// メタディスクリプション
-const description = '競馬予想サイトの総合ランキング。口コミ評価と投稿数から算出した信頼性の高いランキングで、優良サイトを比較できます。';
+// 動的メタディスクリプション生成
+const topSiteNames = topSites.slice(0, 3).map(s => s.name).join('、');
+const description = `競馬予想サイトの総合ランキングTOP30を公開。${topSiteNames}など、口コミ評価と投稿数から算出した信頼性の高いランキングで優良サイトを徹底比較。`;
+
+// BreadcrumbList構造化データ
+const breadcrumbStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'ホーム',
+      item: 'https://frabjous-taiyaki-460401.netlify.app/'
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: '総合ランキング',
+      item: 'https://frabjous-taiyaki-460401.netlify.app/ranking/'
+    }
+  ]
+};
 ---
 
 <BaseLayout
   title="競馬予想サイト 総合ランキング TOP30"
   description={description}
 >
+  <!-- BreadcrumbList構造化データ -->
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbStructuredData)} />
+
   <div class="max-w-6xl mx-auto px-4 py-8">
     <Breadcrumb items={breadcrumbItems} />
 

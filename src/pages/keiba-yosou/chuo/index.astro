@@ -22,11 +22,17 @@ const breadcrumbItems = [
   { label: 'サイト一覧', href: '/keiba-yosou/' },
   { label: categoryLabels[category] }
 ];
+
+// 動的メタディスクリプション生成
+const topSiteNames = sitesWithScore.slice(0, 3).map(s => s.name).join('、');
+const description = sitesWithScore.length > 0
+  ? `${categoryLabels[category]}の競馬予想サイト${sitesWithScore.length}件を掲載。${topSiteNames}など、JRA・中央競馬の的中率・回収率が高いサイトを口コミで徹底比較。無料予想から有料情報まで。`
+  : `JRA・${categoryLabels[category]}の競馬予想サイト一覧。口コミ・評判を比較できます。`;
 ---
 
 <BaseLayout
   title={`${categoryLabels[category]}の予想サイト`}
-  description={`JRA${categoryLabels[category]}の予想サイト`}
+  description={description}
 >
   <div class="max-w-6xl mx-auto px-4 py-8">
     <Breadcrumb items={breadcrumbItems} />
