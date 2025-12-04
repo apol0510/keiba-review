@@ -18,6 +18,7 @@ export const GET: APIRoute = async () => {
     { url: '/ranking/chuo/', priority: '0.8', changefreq: 'daily' },
     { url: '/ranking/nankan/', priority: '0.8', changefreq: 'daily' },
     { url: '/ranking/chihou/', priority: '0.8', changefreq: 'daily' },
+    { url: '/faq/', priority: '0.7', changefreq: 'monthly' },
     { url: '/about/', priority: '0.5', changefreq: 'monthly' },
     { url: '/terms/', priority: '0.3', changefreq: 'yearly' },
     { url: '/privacy/', priority: '0.3', changefreq: 'yearly' },

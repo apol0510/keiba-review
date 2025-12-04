@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import PaginatedSiteList from '../../components/PaginatedSiteList';
+import SiteSearch from '../../components/SiteSearch';
 import { getSitesWithStats, categoryLabels } from '../../lib/airtable';
 
 // データ取得（全件取得 - クライアントサイドでフィルタ・ソート・ページング）
@@ -48,6 +49,9 @@ const breadcrumbItems = [{ label: 'サイト一覧' }];
         </a>
       </div>
     </div>
+
+    <!-- 検索機能 -->
+    <SiteSearch sites={sitesWithScore} categoryLabels={categoryLabels} client:load />
 
     <!-- Category Links -->
     <div class="flex flex-wrap gap-2 mb-8">
