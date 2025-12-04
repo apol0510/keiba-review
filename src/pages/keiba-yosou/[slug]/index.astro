@@ -364,22 +364,33 @@ if (isCategory) {
               )
             }
 
-            <a
-              href={siteData.site.url}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              class="btn-primary inline-flex items-center gap-2"
-            >
-              サイトを見る
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
+            <!-- Affiliate CTA Button -->
+            <div class="space-y-3">
+              <a
+                href={siteData.site.url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                class="block w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-center"
+              >
+                <span class="flex items-center justify-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  <span class="text-lg">公式サイトで無料予想を見る</span>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </a>
+              <p class="text-xs text-gray-500 text-center">
+                ※外部サイトに移動します
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -497,6 +508,31 @@ if (isCategory) {
 
         <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-6">
+          <!-- Sticky CTA Button (Sidebar) -->
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-md p-6 border-2 border-blue-200 sticky top-4">
+            <div class="text-center mb-4">
+              <p class="text-sm font-semibold text-blue-900 mb-1">今すぐチェック</p>
+              <p class="text-xs text-blue-700">最新の予想情報を確認</p>
+            </div>
+            <a
+              href={siteData.site.url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              class="block w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-center"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                  <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                </svg>
+                <span>公式サイトへ</span>
+              </span>
+            </a>
+            <p class="text-xs text-blue-600 text-center mt-3">
+              ⭐ {siteData.site.averageRating ? siteData.site.averageRating.toFixed(1) : '0.0'} / 5.0 ({siteData.site.reviewCount}件の口コミ)
+            </p>
+          </div>
+
           <!-- Pricing & Service Info -->
           <PricingInfo
             pricingType={siteData.site.pricing_type}
@@ -507,7 +543,7 @@ if (isCategory) {
           />
 
           <!-- Review Form -->
-          <div class="bg-white rounded-lg shadow-md p-6 sticky top-24">
+          <div class="bg-white rounded-lg shadow-md p-6">
             <h2 class="text-lg font-bold text-gray-900 mb-4">口コミを投稿する</h2>
             <ReviewForm siteId={siteData.site.id} siteName={siteData.site.name} client:load />
           </div>
