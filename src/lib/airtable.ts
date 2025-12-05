@@ -54,6 +54,7 @@ export interface Site {
   status?: SiteStatus;
   reviewCount?: number;
   averageRating?: number;
+  displayPriority?: number;
   createdAt: string;
 }
 
@@ -119,6 +120,7 @@ export async function getApprovedSites(): Promise<Site[]> {
     status: 'active',
     reviewCount: record.fields.Reviews ? (record.fields.Reviews as string[]).length : 0,
     averageRating: record.fields['Average Rating'] as number,
+    displayPriority: (record.fields.DisplayPriority as number) || 50,
     createdAt: record.fields.CreatedAt as string
   }));
 
@@ -146,6 +148,7 @@ export async function getSitesByCategory(category: Category): Promise<Site[]> {
     status: 'active',
     reviewCount: record.fields.Reviews ? (record.fields.Reviews as string[]).length : 0,
     averageRating: record.fields['Average Rating'] as number,
+    displayPriority: (record.fields.DisplayPriority as number) || 50,
     createdAt: record.fields.CreatedAt as string
   }));
 }
@@ -446,7 +449,7 @@ export async function getSitesWithStats(): Promise<SiteWithStats[]> {
       ...site,
       review_count: reviewCount,
       average_rating: averageRating,
-      display_priority: 50, // デフォルト優先度
+      display_priority: site.displayPriority || 50, // Airtableから取得した値を使用
       created_at: site.createdAt, // snake_caseエイリアス
       screenshot_url: site.screenshotUrl // snake_caseエイリアス
     };
