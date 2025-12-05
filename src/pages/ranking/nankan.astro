@@ -10,14 +10,15 @@ const categoryLabel = categoryLabels[category];
 let sites = await getSitesWithStats();
 sites = sites.filter(site => site.category === category);
 
-// ランキング計算
-sites = sites.map(site => ({
-  ...site,
-  rankingScore: (site.average_rating || 0) * Math.log(site.review_count + 1) * 10
-}));
+// DisplayPriority順でソート（降順）、同じ優先度の場合はCreatedAt順（降順）
+sites.sort((a, b) => {
+  // DisplayPriorityで降順ソート
+  const priorityDiff = (b.display_priority || 50) - (a.display_priority || 50);
+  if (priorityDiff !== 0) return priorityDiff;
 
-// スコア順にソート
-sites.sort((a, b) => b.rankingScore - a.rankingScore);
+  // 同じ優先度の場合、作成日時で降順ソート
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+});
 
 // TOP 20のみ表示
 const topSites = sites.slice(0, 20);

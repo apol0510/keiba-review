@@ -6,14 +6,15 @@ import { getSitesWithStats, categoryLabels } from '../../lib/airtable';
 // 全サイトを取得
 let sites = await getSitesWithStats();
 
-// ランキング計算（評価×口コミ数の重み付けスコア）
-sites = sites.map(site => ({
-  ...site,
-  rankingScore: (site.average_rating || 0) * Math.log(site.review_count + 1) * 10
-}));
+// DisplayPriority順でソート（降順）、同じ優先度の場合はCreatedAt順（降順）
+sites.sort((a, b) => {
+  // DisplayPriorityで降順ソート
+  const priorityDiff = (b.display_priority || 50) - (a.display_priority || 50);
+  if (priorityDiff !== 0) return priorityDiff;
 
-// スコア順にソート
-sites.sort((a, b) => b.rankingScore - a.rankingScore);
+  // 同じ優先度の場合、作成日時で降順ソート
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+});
 
 // TOP 30のみ表示
 const topSites = sites.slice(0, 30);
