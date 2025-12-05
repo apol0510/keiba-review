@@ -32,9 +32,9 @@ const recentUsernames = new Set();
  * これ以上口コミが増えないようにして、不自然さを回避
  */
 const MAX_REVIEWS_PER_SITE = {
-  malicious: 50,  // 悪質サイト: 最大50件（多くの人が被害報告するのは自然）
+  legitimate: 80, // 優良サイト: 最大80件（人気サイトは口コミが多い）
   normal: 30,     // 通常サイト: 最大30件（適度な数で信頼性維持）
-  legit: 80       // 優良サイト: 最大80件（人気サイトは口コミが多い）※未実装
+  malicious: 50   // 悪質サイト: 最大50件（多くの人が被害報告するのは自然）
 };
 
 /**
@@ -228,37 +228,52 @@ function loadAllReviews() {
 }
 
 /**
- * 悪質サイトリストを読み込み
+ * サイト品質設定を読み込み
  */
-function loadMaliciousSites() {
+function loadSiteRatings() {
   const ratingPath = path.join(__dirname, 'config/site-ratings.json');
 
   if (!fs.existsSync(ratingPath)) {
     console.warn('⚠️  site-ratings.jsonが見つかりません');
-    return [];
+    return { legitimate: [], malicious: [], postingFrequency: {} };
   }
 
   const data = JSON.parse(fs.readFileSync(ratingPath, 'utf-8'));
-  return data.malicious || [];
+  return {
+    legitimate: data.legitimate || [],
+    malicious: data.malicious || [],
+    postingFrequency: data.postingFrequency || {
+      legitimate: 1.0,   // 100% (毎日)
+      normal: 0.33,      // 33% (約3日に1回)
+      malicious: 0.2     // 20% (約5日に1回)
+    }
+  };
 }
 
 /**
- * サイトの評価を取得（悪質/優良/不明）
+ * サイトの評価を取得（優良/通常/悪質）
  */
-function getSiteRating(siteName, maliciousSites) {
-  const isMalicious = maliciousSites.some(maliciousName =>
+function getSiteRating(siteName, siteRatings) {
+  // 優良サイトチェック
+  const isLegitimate = siteRatings.legitimate.some(legitName =>
+    siteName.includes(legitName) || legitName.includes(siteName)
+  );
+
+  if (isLegitimate) {
+    return { type: 'legitimate', starRange: [3, 4], weighted: true, probability: siteRatings.postingFrequency.legitimate };
+  }
+
+  // 悪質サイトチェック
+  const isMalicious = siteRatings.malicious.some(maliciousName =>
     siteName.includes(maliciousName) || maliciousName.includes(siteName)
   );
 
   if (isMalicious) {
-    return { type: 'malicious', starRange: [1, 3] }; // 1-3★（⭐4と⭐5は使用禁止）
+    return { type: 'malicious', starRange: [1, 3], probability: siteRatings.postingFrequency.malicious };
   }
 
-  // TODO: 優良サイト判定（将来実装）
-
   // 通常サイト（デフォルト）
-  // 平均評価を2.8〜3.2に維持するため、重み付けランダム選択
-  return { type: 'normal', starRange: [2, 4], weighted: true }; // 2-4★（⭐5は使用禁止）
+  return { type: 'normal', starRange: [2, 4], weighted: true, probability: siteRatings.postingFrequency.normal };
 }
 
 /**
@@ -578,7 +593,24 @@ async function selectSitesToPost(maliciousSites, maxSites = 5) {
     return isUnderLimit;
   });
 
-  const sitesWithPriority = sitesUnderLimit.map(site => {
+  // 投稿確率でフィルタリング（優良: 100%, 通常: 33%, 悪質: 20%）
+  const sitesPassingProbability = sitesUnderLimit.filter(site => {
+    const probability = site.rating.probability || 1.0;
+    const shouldPost = Math.random() < probability;
+
+    if (!shouldPost) {
+      const frequencyLabel =
+        probability >= 1.0 ? '毎日' :
+        probability >= 0.5 ? '2日に1回' :
+        probability >= 0.3 ? '3日に1回' :
+        '5日に1回';
+      console.log(`  ⏭️  ${site.name}: 投稿確率 ${(probability * 100).toFixed(0)}% (${frequencyLabel}) - スキップ`);
+    }
+
+    return shouldPost;
+  });
+
+  const sitesWithPriority = sitesPassingProbability.map(site => {
     const maxReviews = MAX_REVIEWS_PER_SITE[site.rating.type] || MAX_REVIEWS_PER_SITE.normal;
 
     // 環境変数で投稿件数を制御（デフォルト: 1件）
@@ -616,9 +648,11 @@ async function main() {
   const totalReviewsCount = Object.values(allReviews).reduce((sum, reviews) => sum + reviews.length, 0);
   console.log(`\n✅ 合計 ${totalReviewsCount}件の口コミを読み込みました\n`);
 
-  // 悪質サイトリストを読み込み
-  const maliciousSites = loadMaliciousSites();
-  console.log(`✅ 悪質サイト: ${maliciousSites.length}件\n`);
+  // サイト品質設定を読み込み
+  const siteRatings = loadSiteRatings();
+  console.log(`✅ 優良サイト: ${siteRatings.legitimate.length}件`);
+  console.log(`✅ 悪質サイト: ${siteRatings.malicious.length}件`);
+  console.log(`📊 投稿頻度: 優良 ${(siteRatings.postingFrequency.legitimate * 100).toFixed(0)}%, 通常 ${(siteRatings.postingFrequency.normal * 100).toFixed(0)}%, 悪質 ${(siteRatings.postingFrequency.malicious * 100).toFixed(0)}%\n`);
 
   // 環境変数でラウンド数を制御（デフォルト: 1ラウンド）
   const rounds = parseInt(process.env.REVIEW_ROUNDS || '1', 10);
@@ -632,12 +666,12 @@ async function main() {
     console.log('='.repeat(60) + '\n');
 
     // 投稿対象サイトを選択（0 = 全サイト対象）
-    const targetSites = await selectSitesToPost(maliciousSites, 0);
+    const targetSites = await selectSitesToPost(siteRatings, 0);
 
     console.log(`📝 ${targetSites.length}サイトに口コミを投稿します:\n`);
     targetSites.forEach((site, i) => {
-      const typeLabel = site.rating.type === 'malicious' ? '❌悪質' :
-                        site.rating.type === 'legit' ? '✅優良' : '⚪不明';
+      const typeLabel = site.rating.type === 'legitimate' ? '✅優良' :
+                        site.rating.type === 'malicious' ? '❌悪質' : '⚪通常';
       console.log(`  ${i + 1}. ${typeLabel} ${site.name} (${site.reviewCount}/${site.maxReviews}件 → +${site.reviewsToPost}件)`);
     });
     console.log('');
