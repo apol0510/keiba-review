@@ -37,47 +37,8 @@ const MAX_REVIEWS_PER_SITE = {
   malicious: 50   // 悪質サイト: 最大50件（多くの人が被害報告するのは自然）
 };
 
-/**
- * カテゴリ別のユーザー名プレフィックス（大幅に増量）
- */
-const categoryUsernamePrefixes = {
-  nankan: [
-    // 南関特有のワードは削除（中央競馬サイトで使われると不適切）
-    '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者',
-    '競馬大好き', '馬券師', '競馬歴10年',
-    '週末競馬', '競馬マニア', '競馬通', 'うま太郎', 'うまうま',
-    'サラリーマン馬券', '競馬初心者', '競馬ベテラン',
-    '予想屋', '競馬ラバー', '馬券生活', '的中師',
-    '重賞ファン', '競馬愛好家', '馬券研究家',
-    '週末ギャンブラー', '競馬道', 'ターフファン',
-    '回収率追求', '本命党', '穴党', '三連単狙い'
-  ],
-  chuo: [
-    'JRA', '中央', '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者',
-    '中央競馬', 'JRAファン', '競馬大好き', '馬券師', '競馬歴10年',
-    '週末競馬', '競馬マニア', '競馬通', 'うま太郎', 'うまうま',
-    'サラリーマン馬券', '競馬初心者', '競馬ベテラン', 'JRA派',
-    '予想屋', '競馬ラバー', '馬券生活', '的中師',
-    '重賞ファン', '競馬愛好家', '馬券研究家',
-    '週末ギャンブラー', '競馬道', 'ターフファン', '競馬依存',
-    '回収率追求', '本命党', '穴党', '三連単狙い'
-  ],
-  chihou: [
-    // 地方競馬特有のワードは削除（中央競馬サイトで使われると不適切）
-    '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者',
-    '競馬大好き', '馬券師', '競馬歴10年',
-    '週末競馬', '競馬マニア', '競馬通', 'うま太郎', 'うまうま',
-    'サラリーマン馬券', '競馬初心者', '競馬ベテラン',
-    '予想屋', '競馬ラバー', '馬券生活', '的中師',
-    '重賞ファン', '競馬愛好家', '馬券研究家',
-    '週末ギャンブラー', '競馬道', 'ターフファン',
-    '回収率追求', '本命党', '穴党', '三連単狙い'
-  ],
-  other: [
-    '競馬', 'keiba', '競馬ファン', 'ベテラン', '初心者',
-    '競馬好き', '馬券師', '予想屋', '競馬マニア'
-  ]
-};
+// カテゴリ別のユーザー名プレフィックスは削除
+// 新しいユーザー名生成ロジックでパターンベース生成を使用
 
 /**
  * カテゴリ別の禁止ワード
@@ -491,16 +452,48 @@ async function generateReviewByRating(siteName, rating, category, allReviews) {
     };
   }
 
-  // カテゴリに応じたユーザー名を生成（重複防止機能付き）
-  const prefixes = categoryUsernamePrefixes[category] || categoryUsernamePrefixes.other;
-  const usernameSuffixes = [
-    '太郎', 'さん', 'ユーザー', '好き', 'マニア', '愛好家', '馬券師', 'ファン',
-    '次郎', '三郎', '四郎', '花子', '一郎', 'くん', 'ちゃん',
-    '先生', '師匠', '野郎', '兄さん', '姉さん', 'おじさん',
-    '親父', '野郎', '小僧', 'ボーイ', 'ガール', 'マン',
-    '王', '神', 'キング', 'クイーン', 'プリンス', 'プリンセス',
-    'マスター', '名人', '達人', '鉄人', '職人', '玄人',
-    '素人', '見習い', '修行中', '研究家', '評論家', 'アナリスト'
+  // より自然なユーザー名パターンを複数用意
+  const usernamePatterns = [
+    // パターン1: 一般的な名前風（40%）
+    () => {
+      const firstNames = ['太郎', '次郎', '三郎', '花子', '愛', '健', '誠', '優', '拓', '翔', '陽', '凛', '葵', '蓮'];
+      const lastNames = ['田中', '佐藤', '鈴木', '高橋', '伊藤', '渡辺', '山本', '中村', '小林', '加藤'];
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+      const number = Math.floor(Math.random() * 1000);
+      return Math.random() > 0.5 ? `${lastName}${firstName}${number}` : `${firstName}${number}`;
+    },
+
+    // パターン2: ニックネーム風（30%）
+    () => {
+      const nicknames = [
+        'ケイバ太郎', 'うまうま', 'ウマ好き', 'ターフの達人', 'けいば次郎',
+        'うまっち', 'ケイバ男', 'ケイバ女', 'うまきち', 'うまぞう',
+        'ギャンブラー', 'ベテランさん', '初心者くん', 'ラッキーボーイ',
+        '週末の戦士', 'サラリーマン', 'OL', '学生', 'フリーター',
+        'うまニート', 'けいば親父', 'うま子', 'けいば好き', 'ウマ太',
+        'うまみ', 'けいば郎', 'ウマ彦', 'けいば介', 'うま蔵'
+      ];
+      const nickname = nicknames[Math.floor(Math.random() * nicknames.length)];
+      const number = Math.floor(Math.random() * 1000);
+      return `${nickname}${number}`;
+    },
+
+    // パターン3: 競馬関連ワード（20%）
+    () => {
+      const words = ['競馬ファン', '馬券好き', '予想屋', 'ベテラン', '初心者', '本命党', '穴党'];
+      const word = words[Math.floor(Math.random() * words.length)];
+      const number = Math.floor(Math.random() * 1000);
+      return `${word}${number}`;
+    },
+
+    // パターン4: アルファベット混在（10%）
+    () => {
+      const prefixes = ['keiba', 'uma', 'turf', 'bet', 'race', 'win', 'lucky'];
+      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      const number = Math.floor(Math.random() * 10000);
+      return `${prefix}${number}`;
+    }
   ];
 
   let username = '';
@@ -509,11 +502,15 @@ async function generateReviewByRating(siteName, rating, category, allReviews) {
 
   // 重複しないユーザー名を生成（最大50回試行）
   while (usernameAttempts < maxUsernameAttempts) {
-    const usernamePrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const usernameSuffix = usernameSuffixes[Math.floor(Math.random() * usernameSuffixes.length)];
-    const usernameNumber = Math.floor(Math.random() * 1000); // 0-999に拡大
+    // パターンをランダムに選択（重み付け）
+    const rand = Math.random();
+    let patternIndex;
+    if (rand < 0.4) patternIndex = 0;        // 40% - 一般的な名前
+    else if (rand < 0.7) patternIndex = 1;   // 30% - ニックネーム
+    else if (rand < 0.9) patternIndex = 2;   // 20% - 競馬関連
+    else patternIndex = 3;                    // 10% - アルファベット
 
-    const candidate = `${usernamePrefix}${usernameSuffix}${usernameNumber}`;
+    const candidate = usernamePatterns[patternIndex]();
 
     // 最近使用していないユーザー名であれば採用
     if (!recentUsernames.has(candidate)) {
@@ -532,11 +529,9 @@ async function generateReviewByRating(siteName, rating, category, allReviews) {
     usernameAttempts++;
   }
 
-  // 50回試行して見つからない場合はタイムスタンプを追加
+  // 50回試行して見つからない場合はタイムスタンプベース
   if (!username) {
-    const usernamePrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const usernameSuffix = usernameSuffixes[Math.floor(Math.random() * usernameSuffixes.length)];
-    username = `${usernamePrefix}${usernameSuffix}${Date.now() % 10000}`;
+    username = `ユーザー${Date.now() % 100000}`;
   }
 
   return {
