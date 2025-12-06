@@ -92,8 +92,8 @@ export default function ReviewForm({ siteId, siteName, recaptchaSiteKey }: Props
         }
       }
 
-      // 口コミを投稿（APIエンドポイント経由）
-      const response = await fetch('/api/reviews/submit', {
+      // 口コミを投稿（Netlify Functions経由）
+      const response = await fetch('/.netlify/functions/submit-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
