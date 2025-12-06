@@ -30,7 +30,22 @@ jobs:
           REVIEW_ROUNDS: 1  # 自動実行では1ラウンドのみ（手動実行時は環境変数で変更可能）
         run: node scripts/run-daily-reviews-v3.cjs
 
+      - name: Verify execution and data integrity
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node scripts/verify-daily-execution.cjs
+        continue-on-error: false  # 検証エラーがあればワークフロー全体を失敗させる
+
       - name: Summary
+        if: success()
         run: |
-          echo "✅ 毎日の口コミ自動投稿が完了しました"
+          echo "✅ 毎日の口コミ自動投稿が完了し、検証にも合格しました"
           echo "📅 実行日時: $(date)"
+
+      - name: Failure notification
+        if: failure()
+        run: |
+          echo "❌ 口コミ投稿または検証に失敗しました"
+          echo "📋 GitHub Actionsログを確認してください"
+          echo "🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
