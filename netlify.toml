@@ -2,6 +2,9 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+
 # 静的ファイルのキャッシュ（1年間）
 [[headers]]
   for = "/screenshots/*"
