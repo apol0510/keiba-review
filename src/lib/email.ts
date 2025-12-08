@@ -1,7 +1,7 @@
 import sgMail from '@sendgrid/mail';
 
 const SENDGRID_API_KEY = import.meta.env.SENDGRID_API_KEY;
-const SENDGRID_FROM_EMAIL = import.meta.env.SENDGRID_FROM_EMAIL || 'noreply@keiba-review.com';
+const SENDGRID_FROM_EMAIL = import.meta.env.SENDGRID_FROM_EMAIL || 'support@keiba-review.jp';
 const ADMIN_EMAIL = import.meta.env.ADMIN_EMAIL;
 const SITE_URL = import.meta.env.SITE_URL || 'https://frabjous-taiyaki-460401.netlify.app';
 

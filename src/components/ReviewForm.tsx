@@ -80,40 +80,53 @@ export default function ReviewForm({ siteId, siteName, recaptchaSiteKey }: Props
     setIsSubmitting(true);
     setSubmitError(null);
 
+    console.log('📝 口コミ投稿開始');
+    console.log('サイトID:', siteId);
+    console.log('送信データ:', {
+      site_id: siteId,
+      user_name: data.user_name,
+      user_email: data.user_email,
+      rating: data.rating,
+      title: data.title,
+      content: data.content.substring(0, 50) + '...',
+    });
+
     try {
       // reCAPTCHA トークン取得
       let recaptchaToken: string | null = null;
       if (recaptchaSiteKey) {
+        console.log('🔒 reCAPTCHA検証中...');
         recaptchaToken = await getRecaptchaToken();
         if (!recaptchaToken) {
+          console.error('❌ reCAPTCHA検証失敗');
           setSubmitError('セキュリティ検証に失敗しました。ページを再読み込みしてお試しください。');
           setIsSubmitting(false);
           return;
         }
+        console.log('✅ reCAPTCHA検証成功');
       }
+
+      const requestBody = {
+        site_id: siteId,
+        user_name: data.user_name,
+        user_email: data.user_email,
+        rating: data.rating,
+        title: data.title,
+        content: data.content,
+      };
+
+      console.log('📤 APIリクエスト送信中...');
+      console.log('URL: /.netlify/functions/submit-review');
 
       // 口コミを投稿（Netlify Functions経由）
       const response = await fetch('/.netlify/functions/submit-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          site_id: siteId,
-          user_name: data.user_name,
-          user_email: data.user_email,
-          rating: data.rating,
-          title: data.title,
-          content: data.content,
-          // 料金情報（任意）
-          pricing_type: data.pricing_type,
-          has_free_trial: data.has_free_trial,
-          registration_required: data.registration_required,
-          // 詳細評価（任意）
-          accuracy_rating: data.accuracy_rating,
-          price_rating: data.price_rating,
-          support_rating: data.support_rating,
-          transparency_rating: data.transparency_rating,
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('📊 レスポンス受信');
+      console.log('ステータス:', response.status, response.statusText);
 
       if (!response.ok) {
         let errorMessage = '投稿に失敗しました';

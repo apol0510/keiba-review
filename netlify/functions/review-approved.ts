@@ -1,0 +1,257 @@
+import type { Handler } from '@netlify/functions';
+import Airtable from 'airtable';
+
+// メール送信関数
+async function sendApprovalEmail(
+  userEmail: string,
+  userName: string,
+  siteName: string,
+  reviewTitle: string,
+  reviewContent: string,
+  rating: number
+) {
+  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+  const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'support@keiba-review.jp';
+
+  if (!SENDGRID_API_KEY) {
+    console.log('❌ SendGrid APIキーが設定されていません。メール送信をスキップします。');
+    return;
+  }
+
+  console.log('📧 承認通知メール送信中...');
+  console.log('宛先:', userEmail);
+
+  const html = `
+    <div style="font-family: 'Noto Sans JP', sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #10b981;">✅ 口コミが公開されました</h2>
+      <p>${userName} 様</p>
+      <p>「${siteName}」への口コミが承認され、公開されました。</p>
+
+      <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+        <h3>公開された口コミ</h3>
+        <p><strong>タイトル:</strong> ${reviewTitle}</p>
+        <p><strong>評価:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p>
+        <p><strong>口コミ本文:</strong></p>
+        <p style="white-space: pre-wrap;">${reviewContent}</p>
+      </div>
+
+      <p>
+        <a href="https://frabjous-taiyaki-460401.netlify.app/keiba-yosou/"
+           style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+          サイトで確認する
+        </a>
+      </p>
+
+      <p>貴重なご意見をありがとうございました。他の競馬予想サイトについても、ぜひ口コミをお寄せください。</p>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+      <p style="color: #666; font-size: 12px;">
+        このメールは自動送信されています。返信はできません。<br>
+        競馬予想サイト口コミプラットフォーム<br>
+        <a href="https://frabjous-taiyaki-460401.netlify.app">https://frabjous-taiyaki-460401.netlify.app</a>
+      </p>
+    </div>
+  `;
+
+  try {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: userEmail }] }],
+        from: { email: SENDGRID_FROM_EMAIL },
+        subject: '口コミが公開されました - 競馬予想サイト口コミプラットフォーム',
+        content: [{ type: 'text/html', value: html }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ SendGridエラー:', errorText);
+    } else {
+      console.log(`✅ 承認通知メール送信成功: ${userEmail}`);
+    }
+  } catch (error) {
+    console.error('❌ メール送信エラー:', error);
+  }
+}
+
+// Netlify Build Hookを呼び出してデプロイをトリガー
+async function triggerDeploy() {
+  const BUILD_HOOK_URL = process.env.NETLIFY_BUILD_HOOK_URL;
+
+  if (!BUILD_HOOK_URL) {
+    console.log('❌ Build Hook URLが設定されていません。デプロイをスキップします。');
+    return false;
+  }
+
+  console.log('🚀 自動デプロイをトリガー中...');
+
+  try {
+    const response = await fetch(BUILD_HOOK_URL, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      console.error('❌ デプロイトリガー失敗:', response.status, response.statusText);
+      return false;
+    }
+
+    console.log('✅ デプロイトリガー成功');
+    return true;
+  } catch (error) {
+    console.error('❌ デプロイトリガーエラー:', error);
+    return false;
+  }
+}
+
+export const handler: Handler = async (event) => {
+  // CORSヘッダー
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json',
+  };
+
+  // OPTIONSリクエスト（プリフライト）
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: '',
+    };
+  }
+
+  // POSTのみ許可
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
+
+  try {
+    console.log('📥 Airtable Webhookを受信');
+
+    const payload = JSON.parse(event.body || '{}');
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+
+    // Airtableのwebhookペイロード構造を確認
+    // 参考: https://airtable.com/developers/web/api/webhooks-overview
+    const changedTables = payload.changedTablesById || {};
+    const reviewsTableChanges = Object.values(changedTables).find(
+      (table: any) => table.name === 'Reviews'
+    );
+
+    if (!reviewsTableChanges) {
+      console.log('ℹ️  Reviewsテーブルの変更ではありません');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ message: 'Not a Reviews table change' }),
+      };
+    }
+
+    // 変更されたレコードIDを取得
+    const changedRecordIds = (reviewsTableChanges as any).changedRecordsById
+      ? Object.keys((reviewsTableChanges as any).changedRecordsById)
+      : [];
+
+    if (changedRecordIds.length === 0) {
+      console.log('ℹ️  変更されたレコードがありません');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ message: 'No changed records' }),
+      };
+    }
+
+    console.log(`📝 ${changedRecordIds.length}件のレコード変更を検出`);
+
+    // Airtable接続
+    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+
+    if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Server configuration error' }),
+      };
+    }
+
+    const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
+
+    // 変更されたレコードを取得して、承認されたものをチェック
+    let approvedCount = 0;
+
+    for (const recordId of changedRecordIds) {
+      try {
+        const record = await base('Reviews').find(recordId);
+
+        // IsApproved が true かつ、UserEmail が存在するかチェック
+        if (record.fields.IsApproved && record.fields.UserEmail) {
+          console.log(`✅ 承認された口コミを検出: ${recordId}`);
+
+          // サイト情報を取得
+          const siteIds = record.fields.Site as string[];
+          if (!siteIds || siteIds.length === 0) {
+            console.log('⚠️  サイト情報がありません');
+            continue;
+          }
+
+          const siteRecord = await base('Sites').find(siteIds[0]);
+          const siteName = siteRecord.fields.Name as string;
+
+          // 承認通知メールを送信
+          await sendApprovalEmail(
+            record.fields.UserEmail as string,
+            record.fields.UserName as string,
+            siteName,
+            record.fields.Title as string,
+            record.fields.Content as string,
+            record.fields.Rating as number
+          );
+
+          approvedCount++;
+        }
+      } catch (error) {
+        console.error(`❌ レコード処理エラー (${recordId}):`, error);
+      }
+    }
+
+    // 承認された口コミがあれば、デプロイをトリガー
+    if (approvedCount > 0) {
+      console.log(`\n🎉 ${approvedCount}件の口コミが承認されました`);
+      await triggerDeploy();
+    } else {
+      console.log('ℹ️  承認された口コミはありませんでした');
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        approvedCount,
+        message: `${approvedCount}件の承認通知を送信しました`,
+      }),
+    };
+  } catch (error) {
+    console.error('❌ Webhook処理エラー:', error);
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Webhook処理に失敗しました',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+    };
+  }
+};

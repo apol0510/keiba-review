@@ -199,7 +199,7 @@ SERPAPI_KEY=your-serpapi-key-here
 
 # 任意 - SendGrid（通知）
 SENDGRID_API_KEY=xxx
-SENDGRID_FROM_EMAIL=noreply@your-domain.com
+SENDGRID_FROM_EMAIL=support@keiba-review.jp
 ADMIN_EMAIL=your-email@example.com
 ```
 
@@ -562,7 +562,182 @@ node scripts/update-categories-to-chuo.cjs
 
 ---
 
+## 🔄 次回作業（2025-12-08）
+
+### 📧 SendGrid送信メールアドレス変更タスク
+
+**背景:**
+- 現在: `apolone_bkm@yahoo.co.jp` （個人メールアドレス）
+- 変更先: `support@keiba-review.jp` （プロフェッショナルなアドレス）
+
+**作業状況:**
+- ✅ `review-approved.ts` Netlify Function作成済み（口コミ承認通知 + 自動デプロイ）
+- ✅ Netlify Build Hook作成済み: `https://api.netlify.com/build_hooks/69359142203edf8b75f0c761`
+- ✅ デプロイ完了: https://frabjous-taiyaki-460401.netlify.app
+- ⏸️ Airtable Webhook設定が未完了（作業中断）
+
+### 次回作業の手順
+
+#### Step 1: SendGrid Sender Authentication設定
+
+1. **SendGridにログイン**
+   - https://app.sendgrid.com/
+
+2. **Single Sender Verificationで `support@keiba-review.jp` を追加**
+   - Settings → Sender Authentication → Single Sender Verification
+   - 「Create New Sender」をクリック
+   - From Email Address: `support@keiba-review.jp`
+   - From Name: `競馬予想サイト口コミプラットフォーム`
+   - 確認メールが `support@keiba-review.jp` に届く
+   - メール内のリンクをクリックして認証完了
+
+#### Step 2: Netlify環境変数を更新
+
+```bash
+# SENDGRID_FROM_EMAILを新しいアドレスに変更
+netlify env:set SENDGRID_FROM_EMAIL "support@keiba-review.jp"
+
+# 設定確認
+netlify env:list
+```
+
+#### Step 3: コードを更新 ✅ 完了
+
+以下のファイルで `SENDGRID_FROM_EMAIL` のデフォルト値を `support@keiba-review.jp` に変更済み:
+- `src/lib/email.ts:4` ✅
+- `.env.example:23` ✅
+
+環境変数が設定されていない場合、デフォルトで `support@keiba-review.jp` が使用されます。
+
+#### Step 4: Airtable Webhookを設定
+
+1. **Airtableベースを開く**
+   - https://airtable.com/appwdYkA3Fptn9TtN
+
+2. **Automationを作成**
+   - 左メニュー → 「Automations」
+   - 「Create Automation」をクリック
+
+3. **トリガー設定**
+   - Trigger: 「When record matches conditions」
+   - Table: **Reviews**
+   - Conditions:
+     - Field: **IsApproved**
+     - Condition: **is checked** (または **is true**)
+
+4. **アクション設定**
+   - Action: 「Send a request to URL」(Webhook)
+   - Method: **POST**
+   - URL: `https://frabjous-taiyaki-460401.netlify.app/.netlify/functions/review-approved`
+   - Headers:
+     ```
+     Content-Type: application/json
+     ```
+
+5. **保存して有効化**
+   - Automationに名前をつける: 「口コミ承認時の通知とデプロイ」
+   - 「Turn on」で有効化
+
+#### Step 5: テスト実行
+
+1. **テスト口コミを投稿**
+   - サイトから新しい口コミを投稿
+   - Airtableで確認
+
+2. **Airtableで承認**
+   - Reviewsテーブルを開く
+   - テスト口コミの `IsApproved` チェックボックスをONにする
+
+3. **動作確認**
+   - ✅ Netlify Function Logsでログ確認: https://app.netlify.com/projects/frabjous-taiyaki-460401/logs/functions
+   - ✅ `support@keiba-review.jp` に承認通知メールが届く
+   - ✅ Netlifyで自動デプロイが開始される
+   - ✅ デプロイ完了後、サイトで口コミが表示される
+
+4. **ログ確認コマンド**
+   ```bash
+   # Netlify Function Logsをリアルタイム監視
+   netlify logs:function review-approved
+   ```
+
+#### Step 6: テストデータの削除
+
+```bash
+# テスト口コミを削除
+AIRTABLE_API_KEY=xxx AIRTABLE_BASE_ID=xxx node scripts/delete-latest-test-reviews.cjs
+```
+
+### 環境変数一覧（最新版）
+
+```bash
+# Airtable
+AIRTABLE_API_KEY="patXXXXXXXXXXXXXXXX..."
+AIRTABLE_BASE_ID="appwdYkA3Fptn9TtN"
+
+# SendGrid
+SENDGRID_API_KEY="SG.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..."
+SENDGRID_FROM_EMAIL="support@keiba-review.jp"  # ✅ 変更完了
+ADMIN_EMAIL="apolone_bkm@yahoo.co.jp"
+
+# Netlify Build Hook
+NETLIFY_BUILD_HOOK_URL="https://api.netlify.com/build_hooks/XXXXXXXXXXXXX"
+
+# SerpAPI（サイト自動検知）
+SERPAPI_KEY="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..."
+```
+
+### 実装済みファイル
+
+1. **`netlify/functions/review-approved.ts`**
+   - Airtable Webhookエンドポイント
+   - 口コミ承認時に以下を実行:
+     - ユーザーに承認通知メール送信
+     - Netlify Build Hookを呼び出して自動デプロイ
+
+2. **`scripts/delete-latest-test-reviews.cjs`**
+   - テスト口コミの検索・削除スクリプト
+
+### トラブルシューティング
+
+**メールが届かない場合:**
+1. SendGridで `support@keiba-review.jp` が認証済みか確認
+2. Netlify環境変数が正しく設定されているか確認: `netlify env:list`
+3. Netlify Function Logsでエラー確認: `netlify logs:function review-approved`
+
+**Webhookが動かない場合:**
+1. Airtable AutomationがONになっているか確認
+2. Webhook URLが正しいか確認
+3. Netlify Function Logsでリクエストが届いているか確認
+
+**デプロイがトリガーされない場合:**
+1. Build Hook URLが正しいか確認
+2. Netlify Function Logsで `triggerDeploy()` のログを確認
+3. Netlifyのデプロイ履歴で手動デプロイが可能か確認
+
+---
+
 ## 作業履歴
+
+### 2025-12-08（夜）
+
+1. 🔄 **口コミ承認時の自動化ワークフロー実装**（進行中）
+   - Netlify Build Hook作成: `https://api.netlify.com/build_hooks/69359142203edf8b75f0c761`
+   - `netlify/functions/review-approved.ts` 作成
+     - 機能1: ユーザーへの承認通知メール送信
+     - 機能2: Netlify Build Hookで自動デプロイ
+   - Netlify環境変数設定: `NETLIFY_BUILD_HOOK_URL`
+   - デプロイ完了: https://frabjous-taiyaki-460401.netlify.app
+   - **次のステップ**:
+     - SendGrid Sender Authenticationで `support@keiba-review.jp` を認証
+     - `SENDGRID_FROM_EMAIL` を `support@keiba-review.jp` に変更
+     - Airtable Webhookを設定
+     - 動作テスト
+
+2. ✅ **SendGridメール送信問題の解決**
+   - 問題: `noreply@frabjous-taiyaki-460401.netlify.app` が未認証
+   - 解決: `apolone_bkm@yahoo.co.jp` （認証済み）に変更
+   - テスト成功: メールが迷惑メールフォルダに届く
+   - 次回改善: `support@keiba-review.jp` に変更予定
 
 ### 2025-12-06
 
