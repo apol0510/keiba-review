@@ -167,10 +167,10 @@ export const handler: Handler = async (event) => {
       .select({
         filterByFormula: `AND(
           {IsApproved} = TRUE(),
-          IS_AFTER({Created}, '${oneMinuteAgo}')
+          IS_AFTER({CreatedAt}, '${oneMinuteAgo}')
         )`,
         maxRecords: 10,
-        sort: [{ field: 'Created', direction: 'desc' }]
+        sort: [{ field: 'CreatedAt', direction: 'desc' }]
       })
       .all();
 
