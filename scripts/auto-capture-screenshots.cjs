@@ -124,7 +124,7 @@ async function main() {
   console.log('📊 承認済みサイトを取得中...\n');
   const records = await base('Sites').select({
     filterByFormula: 'AND({IsApproved} = TRUE(), {ScreenshotURL} = BLANK())',
-    maxRecords: 20, // 一度に最大20サイトまで
+    maxRecords: 50, // 一度に最大50サイトまで
   }).all();
 
   if (records.length === 0) {

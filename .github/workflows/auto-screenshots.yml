@@ -1,9 +1,10 @@
 name: Auto Screenshot Capture
 
 on:
-  # 毎日午前4時（JST）に実行
+  # 毎日2回実行（午前4時・午後4時 JST）
   schedule:
-    - cron: '0 19 * * *' # UTC 19:00 = JST 04:00
+    - cron: '0 19 * * *' # UTC 19:00 = JST 04:00（午前4時）
+    - cron: '0 7 * * *'  # UTC 07:00 = JST 16:00（午後4時）
 
   # 手動実行も可能
   workflow_dispatch:
