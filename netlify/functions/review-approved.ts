@@ -136,42 +136,13 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    console.log('📥 Airtable Webhookを受信');
+    console.log('📥 Airtable Automationを受信');
 
     const payload = JSON.parse(event.body || '{}');
     console.log('Payload:', JSON.stringify(payload, null, 2));
 
-    // Airtableのwebhookペイロード構造を確認
-    // 参考: https://airtable.com/developers/web/api/webhooks-overview
-    const changedTables = payload.changedTablesById || {};
-    const reviewsTableChanges = Object.values(changedTables).find(
-      (table: any) => table.name === 'Reviews'
-    );
-
-    if (!reviewsTableChanges) {
-      console.log('ℹ️  Reviewsテーブルの変更ではありません');
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ message: 'Not a Reviews table change' }),
-      };
-    }
-
-    // 変更されたレコードIDを取得
-    const changedRecordIds = (reviewsTableChanges as any).changedRecordsById
-      ? Object.keys((reviewsTableChanges as any).changedRecordsById)
-      : [];
-
-    if (changedRecordIds.length === 0) {
-      console.log('ℹ️  変更されたレコードがありません');
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ message: 'No changed records' }),
-      };
-    }
-
-    console.log(`📝 ${changedRecordIds.length}件のレコード変更を検出`);
+    // Airtable Automationは空のペイロードを送信することが多いので、
+    // 最新の承認済み口コミを直接取得する方式に変更
 
     // Airtable接続
     const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
@@ -187,16 +158,31 @@ export const handler: Handler = async (event) => {
 
     const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
 
-    // 変更されたレコードを取得して、承認されたものをチェック
+    // 最近承認された口コミ（過去1分以内）を取得
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+
+    console.log('📝 最近承認された口コミを検索中...');
+
+    const records = await base('Reviews')
+      .select({
+        filterByFormula: `AND(
+          {IsApproved} = TRUE(),
+          IS_AFTER({Created}, '${oneMinuteAgo}')
+        )`,
+        maxRecords: 10,
+        sort: [{ field: 'Created', direction: 'desc' }]
+      })
+      .all();
+
+    console.log(`📊 ${records.length}件の承認済み口コミを検出`);
+
     let approvedCount = 0;
 
-    for (const recordId of changedRecordIds) {
+    for (const record of records) {
       try {
-        const record = await base('Reviews').find(recordId);
-
-        // IsApproved が true かつ、UserEmail が存在するかチェック
-        if (record.fields.IsApproved && record.fields.UserEmail) {
-          console.log(`✅ 承認された口コミを検出: ${recordId}`);
+        // UserEmail が存在するかチェック
+        if (record.fields.UserEmail) {
+          console.log(`✅ 承認された口コミ: ${record.id}`);
 
           // サイト情報を取得
           const siteIds = record.fields.Site as string[];
@@ -221,7 +207,7 @@ export const handler: Handler = async (event) => {
           approvedCount++;
         }
       } catch (error) {
-        console.error(`❌ レコード処理エラー (${recordId}):`, error);
+        console.error(`❌ レコード処理エラー (${record.id}):`, error);
       }
     }
 
