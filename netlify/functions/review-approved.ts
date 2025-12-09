@@ -6,6 +6,7 @@ async function sendApprovalEmail(
   userEmail: string,
   userName: string,
   siteName: string,
+  siteSlug: string,
   reviewTitle: string,
   reviewContent: string,
   rating: number
@@ -36,9 +37,9 @@ async function sendApprovalEmail(
       </div>
 
       <p>
-        <a href="https://keiba-review.jp/keiba-yosou/"
+        <a href="https://keiba-review.jp/keiba-yosou/${siteSlug}/"
            style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
-          サイトで確認する
+          あなたの口コミを見る
         </a>
       </p>
 
@@ -213,12 +214,14 @@ export const handler: Handler = async (event) => {
 
           const siteRecord = await base('Sites').find(siteIds[0]);
           const siteName = siteRecord.fields.Name as string;
+          const siteSlug = siteRecord.fields.Slug as string;
 
           // 承認通知メールを送信
           await sendApprovalEmail(
             record.fields.UserEmail as string,
             record.fields.UserName as string,
             siteName,
+            siteSlug,
             record.fields.Title as string,
             record.fields.Content as string,
             record.fields.Rating as number
