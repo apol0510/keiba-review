@@ -3,27 +3,16 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 import EmptyState from '../../../components/EmptyState.astro';
 import PaginatedSiteList from '../../../components/PaginatedSiteList';
-import { getSitesWithStats, categoryLabels } from '../../../lib/airtable';
+import { getSitesWithStats, sortByRankingScore, categoryLabels } from '../../../lib/airtable';
 
 const category = 'chihou';
 
 // データ取得（カテゴリでフィルタ - クライアントサイドでページング）
-let sites = await getSitesWithStats();
-sites = sites.filter(site => site.category === category);
+const allSites = await getSitesWithStats();
+const categorySites = allSites.filter(site => site.category === category);
 
-// DisplayPriority順でソート（降順）、同じ優先度の場合はCreatedAt順（降順）
-const sitesWithScore = sites.map(site => ({
-  ...site,
-  rankingScore: (site.average_rating || 0) * Math.log(site.review_count + 1) * 10
-}));
-sitesWithScore.sort((a, b) => {
-  // DisplayPriorityで降順ソート
-  const priorityDiff = (b.display_priority || 50) - (a.display_priority || 50);
-  if (priorityDiff !== 0) return priorityDiff;
-
-  // 同じ優先度の場合、作成日時で降順ソート
-  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-});
+// ランキングスコアを計算してソート（共通関数を使用）
+const sitesWithScore = sortByRankingScore(categorySites);
 
 const breadcrumbItems = [
   { label: 'サイト一覧', href: '/keiba-yosou/' },
