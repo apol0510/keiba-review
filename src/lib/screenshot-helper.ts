@@ -30,7 +30,7 @@ export function getScreenshotUrl(slug: string, externalUrl?: string): string {
 /**
  * 利用可能なローカルスクリーンショット一覧
  * public/screenshots/ に配置された画像のslug
- * Puppeteerで自動取得した92サイト
+ * Puppeteerで自動取得した92サイト + 手動追加1サイト = 93サイト
  */
 export const AVAILABLE_SCREENSHOTS = [
   'ai-shisu-com', 'aikba-net', 'allwin7-com', 'anaumatou-jp', 'apolon-keibanahibi-com',
@@ -44,7 +44,7 @@ export const AVAILABLE_SCREENSHOTS = [
   'kayochinkeiba-com', 'keiba-ai-jp', 'keiba-expo-jp', 'keiba-kouryaku-net', 'keiba-nar',
   'keiba-night-com', 'keiba-nine-com', 'keiba-no1-com', 'keiba-programs-v-jp', 'keiba36-com',
   'keiba7-net', 'keibablood-com', 'keibagrant-jp', 'keibalab', 'keibariron-com', 'lounge-dmm-com',
-  'm-jockey-co-jp', 'masts-jp', 'muryou-keiba-ai-jp', 'nankankeiba-xyz', 'nar-k-ba-net',
+  'm-jockey-co-jp', 'masts-jp', 'muryou-keiba-ai-jp', 'nankan-analytics', 'nankankeiba-xyz', 'nar-k-ba-net',
   'navi-keiba-com', 'netkeiba', 'oddspark', 'oi-keiba', 'pc-3448-jp', 'pluskeiba-com',
   'rakuten-keiba', 'sarabure-jp', 'shinkeiba-com', 'sites-google-com', 'smart-horse-jp',
   'spat4', 'stats-keiba-com', 't-tank-net', 'taro-k-com', 'tr-vision-net', 'turf-v-jp',
