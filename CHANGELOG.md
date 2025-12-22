@@ -4,6 +4,86 @@
 
 ---
 
+## 2025-12-22 - 午後: SEO改善
+
+### Search Console「代替ページ」問題の修正 ✅
+
+**問題:**
+- Search Consoleで「代替ページ（適切な canonical タグあり）」として1ページ検出
+- 原因: 本番環境でSITE_URLが未設定
+- デフォルト値が誤ったドメイン（`keiba-review.com`）を使用
+- 実際のドメイン: `keiba-review.jp`
+
+**修正内容:**
+
+1. **Netlify環境変数の設定**
+   ```bash
+   SITE_URL=https://keiba-review.jp
+   ```
+
+2. **ハードコードされたURLの修正**
+   - `src/layouts/BaseLayout.astro`: canonical URL生成ロジック
+   - `src/pages/index.astro`: WebSite構造化データ
+   - `src/pages/sitemap.xml.ts`: サイトマップURL
+   - `src/pages/keiba-yosou/[slug]/index.astro`: Product/BreadcrumbList構造化データ
+   - `src/pages/faq.astro`: BreadcrumbList構造化データ
+
+3. **環境変数ベースのURL生成**
+   ```javascript
+   const siteUrl = import.meta.env.SITE_URL || 'https://frabjous-taiyaki-460401.netlify.app';
+   const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+   ```
+
+**影響:**
+- 全ページのcanonical URLが `https://keiba-review.jp/` に統一
+- 構造化データ（Product, BreadcrumbList, WebSite）も正しいドメインを参照
+- Search Consoleのインデックス問題が解消（数日で反映予定）
+
+**効果:**
+- SEO評価の向上
+- 検索結果のURL統一
+- 今後のドメイン変更も環境変数で柔軟に対応可能
+
+---
+
+## 2025-12-22 - 午前: ユーザー名生成改善
+
+### ユーザー名生成ロジックの改善 ✅
+
+**問題:**
+- すべてのユーザー名に末尾番号が付いて不自然
+- 例: `競馬太郎853`, `馬券師472`
+
+**修正内容:**
+
+1. **番号なしユーザー名を追加（70%の確率で使用）**
+   - 名無しさん@競馬板
+   - 匿名
+   - 名無しさん
+   - 競馬ファン
+   - 南関ファン
+   - 通りすがり
+   - 競馬好き
+   - 馬券生活者
+   - 週末の戦士
+   - 予想屋
+   - 競馬研究家
+
+2. **番号付き名前は30%のみ**
+   - 番号の範囲を0-999から0-99に縮小
+   - より自然な見た目に
+
+3. **重複対策**
+   - 番号なし名前が重複した場合のみ番号追加
+   - 最近使用した100件を記録
+
+**効果:**
+- より自然な掲示板風のユーザー名
+- 不自然な3桁番号の大幅削減
+- リアルな口コミ感の向上
+
+---
+
 ## 2025-12-22 - システム全体改善
 
 ### 🔴 優先度：高

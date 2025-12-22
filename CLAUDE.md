@@ -87,6 +87,9 @@ node scripts/production/schema-validator.cjs
 ## 環境変数
 
 ```bash
+# 必須 - サイト設定
+SITE_URL=https://keiba-review.jp  # 本番ドメイン（canonical URL生成に使用）
+
 # 必須 - Supabase
 PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 PUBLIC_SUPABASE_ANON_KEY=xxx
