@@ -342,21 +342,51 @@ function selectStars(starRange, weighted, type, currentAvg, reviewCount, starWei
  * ユーザー名生成
  */
 function generateUsername(category) {
-  const baseNames = [
-    '競馬太郎', '馬券師', '予想家', '競馬ファン', '南関ファン',
-    '投資家', 'ギャンブラー', '週末の戦士', 'データ分析家', 'AI信者',
-    '馬券研究家', '競馬歴10年', '三郎', '花子', '匿名'
+  // 番号なしで使えるリアルなユーザー名
+  const standAloneNames = [
+    '名無しさん@競馬板',
+    '匿名',
+    '名無しさん',
+    '競馬ファン',
+    '南関ファン',
+    '通りすがり',
+    '競馬好き',
+    '馬券生活者',
+    '週末の戦士',
+    '予想屋',
+    '競馬研究家'
   ];
+
+  // 番号やsuffixと組み合わせて使うベース名
+  const baseNames = [
+    '競馬太郎', '馬券師', '予想家', '投資家', 'ギャンブラー',
+    'データ分析家', 'AI信者', '馬券研究家', '競馬歴10年',
+    '三郎', '花子', '南関好き', '地方競馬ファン'
+  ];
+
   const suffixes = ['', 'マン', '神', '王', 'さん'];
-  const number = Math.floor(Math.random() * 1000);
 
   let username;
   let attempts = 0;
 
   do {
-    const baseName = baseNames[Math.floor(Math.random() * baseNames.length)];
-    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-    username = `${baseName}${suffix}${number + attempts}`;
+    // 70%の確率で番号なしのリアルな名前を使用
+    if (Math.random() < 0.7) {
+      username = standAloneNames[Math.floor(Math.random() * standAloneNames.length)];
+
+      // 重複の場合のみ番号を追加
+      if (recentUsernames.has(username)) {
+        const number = Math.floor(Math.random() * 100);
+        username = `${username}${number + attempts}`;
+      }
+    } else {
+      // 30%の確率で番号付き名前
+      const baseName = baseNames[Math.floor(Math.random() * baseNames.length)];
+      const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+      const number = Math.floor(Math.random() * 100);
+      username = `${baseName}${suffix}${number + attempts}`;
+    }
+
     attempts++;
   } while (recentUsernames.has(username) && attempts < 10);
 
