@@ -15,8 +15,8 @@ const {
 
 const siteTitle = '競馬予想サイト口コミ';
 const fullTitle = title === 'トップ' ? siteTitle : `${title} | ${siteTitle}`;
-const siteUrl = import.meta.env.SITE_URL || 'https://keiba-review.com';
-const canonicalUrl = new URL(Astro.url.pathname, siteUrl);
+const siteUrl = import.meta.env.SITE_URL || 'https://frabjous-taiyaki-460401.netlify.app';
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
 const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
 ---
 

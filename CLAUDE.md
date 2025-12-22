@@ -38,14 +38,27 @@ keiba-review/
 ├── supabase/
 │   └── schema.sql          # DBスキーマ（Supabase SQL Editorで実行）
 ├── scripts/
-│   ├── detect_new_sites.py # サイト自動検知スクリプト
-│   ├── update_stats.py     # 統計更新スクリプト
-│   └── requirements.txt    # Python依存関係
+│   ├── production/         # 本番スクリプト（6個）
+│   │   ├── run-daily-reviews-v4.cjs      # 口コミ自動投稿
+│   │   ├── auto-capture-screenshots.cjs  # スクリーンショット取得
+│   │   ├── fetch-keiba-sites.js          # サイト自動検知
+│   │   ├── auto-categorize-sites.js      # カテゴリ自動分類
+│   │   ├── daily-monitoring.cjs          # 日次モニタリング
+│   │   └── schema-validator.cjs          # スキーマ検証
+│   ├── dev/                # 開発・テスト用（8個）
+│   ├── maintenance/        # メンテナンス用（20+個）
+│   ├── archived/           # 旧バージョン（55+個）
+│   ├── config/             # 設定ファイル
+│   └── reviews-data/       # 口コミテンプレート（444件）
 ├── .github/workflows/
-│   ├── detect-new-sites.yml  # 毎日AM3時に自動実行
-│   └── update-stats.yml      # 毎時0分に自動実行
+│   ├── auto-post-reviews.yml       # 毎日AM4:00
+│   ├── auto-screenshots.yml        # 毎日AM4:30/PM4:00
+│   ├── auto-rebuild-on-review.yml  # 毎日AM6:00
+│   ├── daily-automation.yml        # 毎週月曜AM3:00
+│   └── daily-monitoring.yml        # 毎日AM9:00（新規）
 ├── public/                 # 静的ファイル
 ├── .env.example            # 環境変数テンプレート
+├── CHANGELOG.md            # 改善履歴
 └── astro.config.mjs        # Astro設定
 ```
 
@@ -62,7 +75,13 @@ npm run build
 npm run preview
 
 # サイト自動検知（SerpAPI使用）
-node scripts/fetch-keiba-sites.js
+node scripts/production/fetch-keiba-sites.js
+
+# 日次モニタリング
+node scripts/production/daily-monitoring.cjs
+
+# スキーマ検証
+node scripts/production/schema-validator.cjs
 ```
 
 ## 環境変数

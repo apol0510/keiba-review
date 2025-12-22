@@ -168,13 +168,15 @@ if (isCategory) {
     return { rating, count, percentage };
   });
 
+  const siteUrl = import.meta.env.SITE_URL || 'https://frabjous-taiyaki-460401.netlify.app';
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: site.name,
     description: site.description,
     image: site.screenshotUrl,
-    url: `https://keiba-review.com/keiba-yosou/${site.slug}/`,
+    url: `${siteUrl}/keiba-yosou/${site.slug}/`,
     aggregateRating:
       reviews.length > 0 && site.averageRating
         ? {
@@ -209,25 +211,25 @@ if (isCategory) {
         '@type': 'ListItem',
         position: 1,
         name: 'ホーム',
-        item: 'https://keiba-review.com/'
+        item: `${siteUrl}/`
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'サイト一覧',
-        item: 'https://keiba-review.com/keiba-yosou/'
+        item: `${siteUrl}/keiba-yosou/`
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: categoryLabels[site.category],
-        item: `https://keiba-review.com/keiba-yosou/${site.category}/`
+        item: `${siteUrl}/keiba-yosou/${site.category}/`
       },
       {
         '@type': 'ListItem',
         position: 4,
         name: site.name,
-        item: `https://keiba-review.com/keiba-yosou/${site.slug}/`
+        item: `${siteUrl}/keiba-yosou/${site.slug}/`
       }
     ]
   };
