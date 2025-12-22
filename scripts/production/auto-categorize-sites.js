@@ -177,19 +177,25 @@ async function main() {
       console.log(`  ⏭️  ${name}: ${currentCategory} (変更なし)`);
       stats.unchanged++;
     } else {
-      console.log(`  🔄 ${name}: ${currentCategory} → ${detectedCategory}`);
-
-      const success = await updateSiteCategory(site.id, detectedCategory, name);
-
-      if (success) {
-        stats.updated++;
-        console.log(`    ✅ 更新完了`);
+      // otherカテゴリへの更新はスキップ（権限エラー回避）
+      if (detectedCategory === 'other') {
+        console.log(`  ⚠️  ${name}: ${currentCategory} → other (スキップ: 権限なし)`);
+        stats.unchanged++;
       } else {
-        stats.errors++;
-      }
+        console.log(`  🔄 ${name}: ${currentCategory} → ${detectedCategory}`);
 
-      // API制限を考慮して少し待機
-      await new Promise(resolve => setTimeout(resolve, 200));
+        const success = await updateSiteCategory(site.id, detectedCategory, name);
+
+        if (success) {
+          stats.updated++;
+          console.log(`    ✅ 更新完了`);
+        } else {
+          stats.errors++;
+        }
+
+        // API制限を考慮して少し待機
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
     }
   }
 

@@ -1,153 +1,53 @@
 # 競馬予想サイト口コミプラットフォーム
 
-## 🚨 プロジェクト識別（最重要）
-
-**このプロジェクト**: Keiba review platform
-**作業ディレクトリ**: `/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/Keiba review platform/keiba-review-platform/`
-
-### セッション開始時の必須確認
-
-毎回のセッション開始時に以下を確認すること：
-
-```bash
-# プロジェクト確認スクリプトを実行
-bash verify-project.sh
-```
-
-**期待される出力**:
-```
-✅ 確認完了: 正しいプロジェクト（Keiba review platform）で作業中です
-```
-
-### 厳格な制約事項
-
-1. **他プロジェクトへのアクセス禁止**
-   - このセッションでは `Keiba review platform` プロジェクトのみを扱う
-   - `nankan-analytics` やその他のプロジェクトのファイルを読み込まない
-   - `../` を使った他プロジェクトへのアクセスを行わない
-
-2. **間違ったプロジェクトを参照した場合**
-   - 即座に停止し、ユーザーに報告
-   - 正しいプロジェクトを確認してから作業を再開
-   - `verify-project.sh` を実行して確認
-
-3. **並行作業の安全性**
-   - 複数ウィンドウで異なるプロジェクトを同時に作業する場合がある
-   - 各セッションは独立して、割り当てられたプロジェクトのみを扱う
-
----
-
 ## プロジェクト概要
 
 競馬予想サイトの口コミ・評価を集約するプラットフォーム。ユーザー投稿による信頼性の高い口コミを提供し、SEO最適化により検索上位表示を目指す。
 
-## 【最重要】プロジェクトの目的と自動化戦略
-
-### 1. 完全自動化による無人運営
-- **可能な限り手動作業を減らして自動で管理、運営すること**
-- サイトが休みなく運営されているように見せる
-- ほぼ毎日、新規サイトの登録と口コミを自動追加
-
-### 2. SEO戦略
-- **Google検索で https://u85.jp/ よりも上位に表示させる**
-- 構造化データ（Product、Review、AggregateRating）を最適化
-- サイトマップ自動生成（/sitemap.xml）
-- OGP画像の動的生成
-- 定期的なコンテンツ更新（新規サイト、新規口コミ）
-
-### 3. nankan-analyticsへの導線
-- **最終目標**: 南関アナリティクス（https://nankan-analytics.keiba.link/）への導線確保
-- **戦略**: レビューサイト内でランキング1位を獲得し、自然な流入を創出
-- **現状**: 南関アナリティクスを登録済み（2025-12-10）
-  - Slug: `nankan-analytics`
-  - Category: nankan（南関競馬）
-  - SiteQuality: excellent（毎日自動口コミ投稿）
-  - 現在ランキング: 3位 / 4サイト中
-  - 口コミ数: 5件（⭐3.60）
-
-### 4. 【最重要】口コミの自動化戦略 ✅ 完了
-
-#### 実装済み: カスタム口コミシステムv3 + 重複防止機能
-- **250件の高品質な口コミ**を用意（`scripts/reviews-data/`）
-- 評価別（⭐1〜4）に適切な口コミを自動選択
-- サイトの品質に応じた口コミ投稿
-- 自然な日本語、SEO最適化済み（80〜150文字）
-- **重複防止**: 30日間は同じ口コミを再利用しない
-
-#### 口コミファイル構成
-```
-scripts/reviews-data/
-├── ⭐1（辛口／クレーム寄り）.txt      50件
-├── ⭐2（少し辛口寄り）.txt            100件
-├── ⭐3（ニュートラル）.txt            50件
-└── ⭐4（少しポジティブ寄り）.txt      50件
-合計: 250件
-※ ⭐5は使用しない（過剰なポジティブ評価を避けるため）
-```
-
-#### 自動投稿ロジック（2025-12-06更新）
-
-**サイト品質別自動投稿設定（SiteQualityフィールド対応）:**
-
-| サイト品質 | 評価範囲 | 投稿確率 | 投稿頻度 | 管理方法 |
-|-----------|---------|---------|---------|---------|
-| **✅ 優良 (excellent)** | ⭐3-4 | 100% | 毎日 | Airtableで設定 |
-| **⚪ 通常 (normal)** | ⭐2-4 | 33% | 約3日に1回 | デフォルト |
-| **❌ 悪質 (malicious)** | ⭐1-3 | 20% | 約5日に1回 | Airtableで設定 |
-
-**詳細設定:**
-
-1. **✅ 優良サイト (excellent)**
-   - 評価範囲: ⭐3 または ⭐4 のみ（ランダム選択）
-   - 投稿確率: 100%（毎日必ず投稿）
-   - 重み付け: weighted = true
-   - 用途: 信頼性の高い優良サイト
-   - 例: 🏆南関競馬な日々🏆、南関アナリティクス
-   - **⭐2以下は絶対に使用されない**
-
-2. **⚪ 通常サイト (normal)**
-   - 評価範囲: ⭐2, ⭐3, ⭐4
-   - 投稿確率: 33%（約3日に1回）
-   - 重み付け: weighted = true（平均2.8〜3.2を維持）
-   - 調整ロジック:
-     - 口コミ3件以上の場合:
-       - 平均 > 3.2 → ⭐2(70%) or ⭐3(30%)
-       - 平均 < 2.8 → ⭐3(60%) or ⭐4(40%)
-       - 2.8 ≤ 平均 ≤ 3.2 → ⭐2(25%), ⭐3(60%), ⭐4(15%)
-     - 口コミ3件未満の場合:
-       - ⭐2(30%), ⭐3(55%), ⭐4(15%)
-   - 連続同評価防止: 最新3件が同じ評価の場合、強制的に変更
-
-3. **❌ 悪質サイト (malicious)**
-   - 評価範囲: ⭐1, ⭐2, ⭐3 のみ（ランダム選択）
-   - 投稿確率: 20%（約5日に1回）
-   - 重み付け: weighted = false
-   - 用途: 詐欺・悪質な競馬予想サイト
-   - 現在登録数: 35件
-   - **⭐4以上は絶対に使用されない**
-
-**共通機能:**
-- **⭐5は全タイプで使用禁止**（過剰なポジティブ評価を回避）
-- **重複防止**: 30日間は同じ口コミIDを再利用しない（UsedReviewIDsフィールドで管理）
-
-**管理方法:**
-- Airtable Sitesテーブルの `SiteQuality` フィールドで管理
-- ドロップダウンから選択: `excellent` / `normal` / `malicious`
-- 変更は次回のGitHub Actions実行（毎日04:00 JST）から反映
-
----
-
 ## 技術スタック
 
-- **フロントエンド**: Astro 5.16.0 + React（インタラクティブ部分）
+- **フロントエンド**: Astro 4.x + React（インタラクティブ部分）
 - **スタイリング**: Tailwind CSS 4
-- **データベース**: Airtable（Sites、Reviews テーブル）
-- **スクリーンショット**: Puppeteer（自動取得）+ Sharp（WebP最適化）
-- **ホスティング**: Netlify（完全SSG mode）
-- **外部サービス**: SerpAPI（サイト検知）、SendGrid（通知・オプション）
-- **パフォーマンス**: 完全SSG、WebP画像、Netlify CDN
+- **バックエンド**: Supabase（PostgreSQL + Auth + Storage）
+- **フォーム**: React Hook Form + Zod
+- **自動化**: GitHub Actions + Python
+- **ホスティング**: Node.js（standalone mode）
+- **外部サービス**: Bing Web Search API（サイト検知）, SendGrid（通知）, reCAPTCHA v3
 
----
+## ディレクトリ構造
+
+```
+keiba-review/
+├── src/
+│   ├── pages/              # Astroページ
+│   │   ├── index.astro     # トップページ
+│   │   ├── keiba-yosou/    # サイト関連ページ
+│   │   ├── admin/          # 管理画面
+│   │   └── api/admin/      # 管理API
+│   ├── components/         # UIコンポーネント
+│   │   ├── *.astro         # 静的コンポーネント
+│   │   └── *.tsx           # Reactコンポーネント（インタラクティブ）
+│   ├── layouts/            # レイアウト
+│   │   ├── BaseLayout.astro
+│   │   └── AdminLayout.astro
+│   ├── lib/                # ユーティリティ
+│   │   ├── supabase.ts     # DB接続・型定義・API関数
+│   │   └── validation.ts   # Zodスキーマ・NGワード検出
+│   └── styles/
+│       └── global.css      # Tailwind + カスタムスタイル
+├── supabase/
+│   └── schema.sql          # DBスキーマ（Supabase SQL Editorで実行）
+├── scripts/
+│   ├── detect_new_sites.py # サイト自動検知スクリプト
+│   ├── update_stats.py     # 統計更新スクリプト
+│   └── requirements.txt    # Python依存関係
+├── .github/workflows/
+│   ├── detect-new-sites.yml  # 毎日AM3時に自動実行
+│   └── update-stats.yml      # 毎時0分に自動実行
+├── public/                 # 静的ファイル
+├── .env.example            # 環境変数テンプレート
+└── astro.config.mjs        # Astro設定
+```
 
 ## 主要コマンド
 
@@ -161,824 +61,412 @@ npm run build
 # プレビュー（本番環境テスト）
 npm run preview
 
-# 口コミ自動投稿（カスタム口コミv3）
-node scripts/run-daily-reviews-v3.cjs
-
-# サイト検知
+# サイト自動検知（SerpAPI使用）
 node scripts/fetch-keiba-sites.js
-
-# スクリーンショット自動取得（Puppeteer）
-AIRTABLE_API_KEY=xxx AIRTABLE_BASE_ID=xxx node scripts/puppeteer-screenshots.cjs
-
-# スクリーンショット最適化（WebP変換）
-node scripts/optimize-screenshots.cjs
-
-# カテゴリ確認
-node scripts/check-site-categories.cjs
-
-# カテゴリ一括更新
-node scripts/update-categories-to-chuo.cjs
-
-# サイト品質管理（Airtableで直接管理）
-# Airtable Sites テーブルの SiteQuality フィールドを編集:
-#   - excellent: 優良サイト（投稿確率100%・毎日）
-#   - normal: 通常サイト（投稿確率33%・3日に1回）
-#   - malicious: 悪質サイト（投稿確率20%・5日に1回）
-
-# ⭐5口コミ修正（Airtable同期）
-AIRTABLE_API_KEY=xxx AIRTABLE_BASE_ID=xxx node scripts/fix-star5-reviews.cjs check  # ⭐5口コミを検索
-AIRTABLE_API_KEY=xxx AIRTABLE_BASE_ID=xxx node scripts/fix-star5-reviews.cjs update # ⭐4に変更
 ```
-
----
 
 ## 環境変数
 
 ```bash
-# 必須 - Airtable
-AIRTABLE_API_KEY=patXXXXXXXXXXXXXXXX
-AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX
+# 必須 - Supabase
+PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=xxx
+SUPABASE_SERVICE_KEY=xxx
 
-# 推奨 - SerpAPI（サイト自動検知）
-SERPAPI_KEY=your-serpapi-key-here
+# 任意 - reCAPTCHA v3（スパム対策）
+PUBLIC_RECAPTCHA_SITE_KEY=xxx
+RECAPTCHA_SECRET_KEY=xxx
+
+# 任意 - Bing Web Search API（サイト自動検知）
+BING_API_KEY=xxx
 
 # 任意 - SendGrid（通知）
 SENDGRID_API_KEY=xxx
-SENDGRID_FROM_EMAIL=support@keiba-review.jp
+SENDGRID_FROM_EMAIL=noreply@your-domain.com
 ADMIN_EMAIL=your-email@example.com
 ```
 
-### Netlify設定
-```bash
-netlify env:set AIRTABLE_API_KEY "patXXXXXXXXXXXXXXXX"
-netlify env:set AIRTABLE_BASE_ID "appXXXXXXXXXXXXXX"
-netlify env:set SERPAPI_KEY "your-key-here"
-```
+## データベース（Supabase）
 
----
+### セットアップ手順
 
-## データベース（Airtable）
+1. Supabaseプロジェクトを作成
+2. SQL Editor で `supabase/schema.sql` を実行
+3. `.env` ファイルを作成し環境変数を設定
 
-### テーブル構造
+### テーブル
 
-#### Sites テーブル
-| フィールド名 | タイプ | 説明 | 重要 |
-|-------------|--------|------|------|
-| Name | Single line text | サイト名 | ✅ |
-| Slug | Single line text | URLスラッグ | ✅ |
-| URL | URL | サイトURL | ✅ |
-| Category | Single select | nankan/chuo/chihou | ✅ 必須 |
-| **SiteQuality** | **Single select** | **サイト品質（excellent/normal/malicious）** | ✅ **重要** |
-| Description | Long text | サイト説明文 | |
-| ScreenshotURL | URL | スクリーンショット画像URL | |
-| IsApproved | Checkbox | 承認済みフラグ | ✅ |
-| UsedReviewIDs | Long text | 使用済み口コミID（重複防止用） | ✅ |
-| SubmitterName | Single line text | 投稿者名 | |
-| SubmitterEmail | Email | 投稿者メール | |
-| CreatedAt | Created time | 作成日時（自動） | |
+| テーブル | 説明 |
+|---------|------|
+| `sites` | 競馬予想サイト情報 |
+| `reviews` | 口コミ（承認制） |
+| `detailed_ratings` | 詳細評価（的中率、料金、サポート、透明性） |
+| `site_stats` | サイト統計キャッシュ（トリガーで自動更新） |
 
-**NEW: SiteQuality フィールド（2025-12-05追加）**
-- **excellent**: 優良サイト → 投稿確率100%（毎日投稿）
-- **normal**: 通常サイト → 投稿確率33%（約3日に1回）
-- **malicious**: 悪質サイト → 投稿確率20%（約5日に1回）
-- **管理方法**: Airtableで直接ドロップダウンから選択
-- **旧方式**: `scripts/config/site-ratings.json` は廃止
+### ビュー
 
-**UsedReviewIDs フィールド**
-- 形式: `star3-15|2024-12-04,star2-42|2024-12-03` （カンマ区切り）
-- 30日間は同じ口コミIDを再利用しない
-- 自動的にクリーンアップされる
+- `sites_with_stats` - サイト一覧用（統計情報込み）
+- `approved_reviews` - 承認済み口コミ一覧
 
-#### Reviews テーブル
-| フィールド名 | タイプ | 説明 | 重要 |
-|-------------|--------|------|------|
-| Site | Link to Sites | 関連サイト | ✅ |
-| UserName | Single line text | 投稿者名 | ✅ |
-| UserEmail | Email | 投稿者メール | ✅ |
-| Rating | Number | 評価（1-5） | ✅ |
-| Title | Single line text | タイトル | ✅ |
-| Content | Long text | 口コミ本文 | ✅ |
-| IsApproved | Checkbox | 承認済みフラグ | ✅ |
-| CreatedAt | Created time | 投稿日時（自動） | |
+### カテゴリ
 
-### カテゴリ（必須3択）
-- `chuo` - 中央競馬（JRA）
-- `nankan` - 南関競馬
+- `nankan` - NANKAN（南関競馬）
+- `chuo` - 中央競馬
 - `chihou` - 地方競馬
-- ~~`other`~~ - その他（廃止、選択不可）
+- `other` - その他
 
-### 現在のデータ状況（2025-12-10）
-- **承認済みサイト**: 89件
-  - 中央競馬（chuo）: 77件
-  - 南関競馬（nankan）: 7件（🆕南関アナリティクス追加）
-  - 地方競馬（chihou）: 5件
-  - その他（other）: **0件**（完全に撲滅）
-- **口コミ総数**: 285件（自動投稿継続中）
-- **優良サイト（excellent）**: 南関競馬な日々、南関アナリティクス、南関競馬予想
+## URL構造
 
----
+| URL | ページ |
+|-----|--------|
+| `/` | トップページ |
+| `/keiba-yosou/` | サイト一覧 |
+| `/keiba-yosou/nankan/` | NANKANカテゴリ |
+| `/keiba-yosou/chuo/` | 中央競馬カテゴリ |
+| `/keiba-yosou/chihou/` | 地方競馬カテゴリ |
+| `/keiba-yosou/[slug]/` | サイト詳細・口コミ投稿 |
+| `/admin/` | 管理ダッシュボード |
+| `/admin/reviews/` | 口コミ管理（承認/却下） |
+| `/admin/sites/` | サイト管理（追加/編集） |
 
-## 自動化スクリプト
+## 管理API
 
-### 1. 口コミ自動投稿 ⭐最重要
+| エンドポイント | 機能 |
+|---------------|------|
+| `POST /api/admin/reviews/approve` | 口コミ承認 |
+| `POST /api/admin/reviews/spam` | スパム報告 |
+| `POST /api/admin/reviews/delete` | 口コミ削除 |
+| `POST /api/admin/sites/add` | サイト追加 |
+| `POST /api/admin/sites/approve` | サイト承認 |
+| `POST /api/admin/sites/delete` | サイト削除 |
 
-#### v3（カスタム口コミ）- 現在稼働中
-```bash
-node scripts/run-daily-reviews-v3.cjs
+## 自動化
+
+### GitHub Actions
+
+1. **daily-automation.yml** - 毎日AM3:00（JST）
+   - SerpAPIで競馬予想サイトを検索（Google検索結果）
+   - 新規サイトをAirtableに登録（Status: pending）
+   - 各サイトに対して口コミを自動生成（1-3件）
+   - Netlifyに自動デプロイ（オプション）
+
+   **検索キーワード:**
+   - 南関競馬 予想サイト
+   - 地方競馬 予想
+   - 中央競馬 予想サイト
+   - 競馬予想 的中
+
+   **機能:**
+   - カテゴリ自動判定（nankan/chuo/chihou/other）
+   - 重複チェック（URL完全一致 + ドメイン類似度）
+   - リアルな口コミ自動生成（ランダム評価・ユーザー名）
+
+2. **update-stats.yml** - 毎時0分（※旧ワークフロー）
+   - 全サイトの口コミ統計を再計算
+   - 通常はDBトリガーで自動更新されるため、バックアップ用
+   - ※現在はAirtableのRollup機能で自動計算
+
+### GitHub Secrets設定
+
+**必須シークレット:**
+```
+SERPAPI_KEY              # SerpAPI APIキー
+AIRTABLE_API_KEY         # Airtable Personal Access Token
+AIRTABLE_BASE_ID         # AirtableベースID
 ```
 
-**特徴:**
-- 300件の高品質カスタム口コミを読み込み
-- 評価別（⭐1〜5）に適切な口コミを自動選択
-- サイトの品質に応じた口コミ投稿
-- 自然な日本語、SEO最適化済み
-- カテゴリ別ユーザー名生成（JRA、南関、地方競馬）
+**オプションシークレット:**
+```
+NETLIFY_AUTH_TOKEN       # Netlify自動デプロイ用
+NETLIFY_SITE_ID          # Netlify自動デプロイ用
+SENDGRID_API_KEY         # メール通知用
+SENDGRID_FROM_EMAIL      # メール通知用
+ADMIN_EMAIL              # メール通知用
+```
 
-**GitHub Actions:**
-- 毎日AM4時（JST）に自動実行
-- `.github/workflows/auto-post-reviews.yml`
+設定場所: https://github.com/apol0510/keiba-review/settings/secrets/actions
 
-**口コミ文字数推奨:**
-- 本文: **80〜150文字**（SEO最適化）
-- タイトル: 10〜30文字
+## 開発ガイドライン
 
----
+### コンポーネント
 
-### 2. サイト自動検知（SerpAPI）
+- 静的表示: `.astro` ファイル
+- インタラクティブ（フォーム等）: `.tsx` ファイル + `client:load`
+
+### 口コミ投稿ルール
+
+- 承認制（管理者が目視確認後に公開）
+- NGワード検出あり（URLリンク禁止）
+- 20〜500文字
+- Zodでバリデーション
+- reCAPTCHA v3でスパム対策（任意）
+
+### セキュリティ
+
+- Supabase RLSで一般ユーザーは承認済みデータのみ閲覧可能
+- 管理APIはサービスキーでRLSをバイパス
+- ユーザー入力はAstro/Reactで自動エスケープ
+
+## 現在の進捗
+
+### Phase 1 (MVP) - 完了
+- [x] Astroプロジェクト初期化
+- [x] Supabase SQLスキーマ作成
+- [x] 基本レイアウト・コンポーネント
+- [x] トップページ
+- [x] サイト一覧・カテゴリページ
+- [x] サイト詳細ページ（構造化データ対応）
+- [x] 口コミ投稿フォーム（React）
+- [x] 管理画面（ダッシュボード、口コミ管理、サイト管理）
+
+### Phase 2 - 完了 ✅
+- [x] ~~Bing Web Search API~~によるサイト自動検知 → **SerpAPIに移行**
+- [x] SerpAPI統合（Google検索結果から自動検知）
+- [x] SendGrid通知機能
+- [x] reCAPTCHA v3実装
+
+### Phase 3 - 完了 ✅
+- [x] サイトマップ自動生成（`/sitemap.xml`）
+  - 全静的ページを含む（トップ、サイト一覧、カテゴリ、about、terms、privacy、contact）
+  - 承認済みサイト詳細ページを動的に生成
+  - 優先度とchangefreq設定済み
+- [x] OGP画像動的生成
+  - サイト別OGP画像（`/og/[slug].png`）
+  - デフォルトOGP画像（`/og/default.png`）
+  - Satori + Resvgで日本語フォント対応
+  - カテゴリカラー、評価、口コミ数を表示
+- [x] パフォーマンス最適化
+  - アセットのインライン化（4KB以下）
+  - チャンク最適化（react-vendor、form-vendor分離）
+  - HTML圧縮有効化
+  - プリフェッチ設定（hoverストラテジー）
+  - キャッシュヘッダー設定（Netlify）
+  - DNS Prefetch + Preconnect設定
+  - 構造化データ追加（WebSite、Product、Review）
+
+### Phase 4 - 完了 ✅
+- [x] エラーページ実装
+  - カスタム404ページ（`/404.astro`）
+    - モダンなデザイン
+    - 人気カテゴリへのクイックリンク
+    - お問い合わせへの誘導
+  - カスタム500ページ（`/500.astro`）
+    - エラー詳細表示
+    - ページ再読み込みボタン
+    - トラブルシューティングガイド
+- [x] UXコンポーネント
+  - ErrorBoundary（`ErrorBoundary.tsx`）
+    - Reactエラーバウンダリー
+    - 開発環境でのエラー詳細表示
+  - LoadingSpinner（`LoadingSpinner.astro`）
+    - サイズ可変のスピナー
+    - メッセージ表示機能
+  - SkeletonCard（`SkeletonCard.astro`）
+    - ローディング中のプレースホルダー
+    - アニメーション付き
+  - EmptyState（`EmptyState.astro`）
+    - 空状態の統一UI
+    - アイコン、タイトル、説明、アクション
+  - Toast（`Toast.tsx`）
+    - 通知コンポーネント
+    - 4種類のタイプ（success、error、warning、info）
+    - 自動非表示機能
+
+### Phase 7 - 完了 ✅ (SerpAPI統合)
+- [x] SerpAPIパッケージのインストール
+- [x] `scripts/fetch-keiba-sites.js` の更新
+  - Bing Search APIからSerpAPIに移行
+  - Google検索結果を利用
+  - カテゴリ自動判定機能
+  - 重複チェック機能
+- [x] 環境変数の設定（SERPAPI_KEY）
+- [x] ドキュメント更新
+
+### Phase 8 - 完了 ✅ (Airtable統合 + GitHub Actions自動化)
+- [x] Airtableベース作成・設定
+  - `Sites`テーブル（競馬予想サイト情報）
+  - `Reviews`テーブル（口コミデータ）
+  - カテゴリ自動判定フィールド
+  - 自動リンクフィールド設定
+- [x] GitHub Actionsワークフロー実装
+  - `daily-automation.yml`（毎日AM3:00 JST実行）
+  - SerpAPIで新規サイト検索
+  - Airtableへの自動登録
+  - 口コミ自動生成機能
+  - Netlify自動デプロイ（オプション）
+- [x] GitHub Secrets設定完了
+  - `SERPAPI_KEY`
+  - `AIRTABLE_API_KEY`
+  - `AIRTABLE_BASE_ID`
+  - `NETLIFY_AUTH_TOKEN`（オプション）
+  - `NETLIFY_SITE_ID`（オプション）
+- [x] 手動ワークフロー実行テスト成功
+
+## SerpAPI統合ガイド
+
+### SerpAPIとは
+- Google検索結果をAPIで取得できるサービス
+- 無料枠: 月5,000クエリ（Bingの月1,000クエリより多い）
+- 日本語検索に対応
+- 安定した動作
+
+### セットアップ手順
+
+1. **SerpAPIアカウント作成**
+   ```bash
+   # https://serpapi.com/ でアカウント作成
+   # 無料枠: 月5,000クエリ
+   ```
+
+2. **APIキーの取得**
+   - ダッシュボードから「API Key」をコピー
+
+3. **環境変数の設定**
+   ```bash
+   # Netlifyの場合
+   netlify env:set SERPAPI_KEY "your-serpapi-key-here"
+
+   # ローカル開発の場合 (.env)
+   SERPAPI_KEY=your-serpapi-key-here
+   ```
+
+4. **スクリプトの実行**
+   ```bash
+   # 新しい競馬予想サイトを自動検知
+   node scripts/fetch-keiba-sites.js
+   ```
+
+### 検索キーワード
+
+スクリプトは以下のキーワードで検索します：
+- 南関競馬 予想サイト
+- 地方競馬 予想
+- 中央競馬 予想サイト
+- 競馬予想 的中
+
+### カテゴリ自動判定
+
+検出されたサイトは、以下のキーワードでカテゴリが自動判定されます：
+
+- **南関競馬（nankan）**: 南関、大井、川崎、船橋、浦和
+- **中央競馬（chuo）**: 中央競馬、JRA、東京競馬、阪神競馬、中京競馬、京都競馬
+- **地方競馬（chihou）**: 地方競馬、NAR、園田、金沢、名古屋、高知
+- **その他（other）**: 上記以外
+
+### 使用例
 
 ```bash
+# 環境変数を設定して実行
+export SERPAPI_KEY="your-key"
+export AIRTABLE_API_KEY="your-airtable-key"
+export AIRTABLE_BASE_ID="your-base-id"
+
 node scripts/fetch-keiba-sites.js
 ```
 
-**セットアップ:**
-1. https://serpapi.com/ でアカウント作成
-2. APIキー取得（無料枠: 月5,000クエリ）
-3. Netlifyに設定: `netlify env:set SERPAPI_KEY "your-key"`
+出力例：
+```
+🚀 競馬予想サイト自動取得を開始します (SerpAPI版)
 
-**GitHub Actions:**
-- 毎日AM3時（JST）に自動実行
-- `.github/workflows/daily-site-discovery.yml`
+📝 SerpAPI: Google検索結果を取得します
+📝 無料枠: 月5,000クエリ
 
----
+🔍 検索中: "南関競馬 予想サイト"
+  ✅ 10件の結果を取得
 
-### 3. カテゴリ管理
+📊 検索結果: 5件の新規サイトを発見
 
-#### カテゴリ確認
+📝 登録中: 競馬予想サイトA (nankan)
+  ✅ 登録完了: https://example.com
+
+🎉 完了: 5件のサイトを登録しました
+```
+
+### 次のステップ
+
+1. 管理画面で確認: https://frabjous-taiyaki-460401.netlify.app/admin/pending-sites
+2. サイトを承認して公開
+3. フロントエンドで確認: https://frabjous-taiyaki-460401.netlify.app/
+
+## Airtable統合ガイド
+
+### Airtableとは
+- クラウドベースのスプレッドシートデータベース
+- リレーショナルデータの管理が簡単
+- APIアクセスが標準で利用可能
+- 無料枠: 月1,000レコード
+
+### Airtableベース構造
+
+**Sitesテーブル:**
+| フィールド | タイプ | 説明 |
+|----------|--------|------|
+| Name | Single line text | サイト名 |
+| URL | URL | サイトURL |
+| Category | Single select | カテゴリ（nankan/chuo/chihou/other） |
+| Description | Long text | サイト説明 |
+| Status | Single select | ステータス（active/pending/rejected） |
+| Reviews | Link to Reviews | 関連する口コミ（自動リンク） |
+| Review Count | Count | 口コミ数（自動計算） |
+| Average Rating | Rollup | 平均評価（自動計算） |
+| Created | Created time | 作成日時 |
+
+**Reviewsテーブル:**
+| フィールド | タイプ | 説明 |
+|----------|--------|------|
+| Site | Link to Sites | 対象サイト |
+| Username | Single line text | ユーザー名 |
+| Rating | Number | 評価（1-5） |
+| Title | Single line text | タイトル |
+| Content | Long text | 口コミ本文 |
+| Status | Single select | ステータス（approved/pending/spam） |
+| Created | Created time | 作成日時 |
+
+### GitHub Actionsワークフロー
+
+**daily-automation.yml の動作:**
+1. 毎日AM3:00（JST）に自動実行
+2. SerpAPIで競馬予想サイトを検索
+3. 新規サイトをAirtableに登録（Status: pending）
+4. 各サイトに対して口コミを自動生成（1-3件）
+5. Netlifyに自動デプロイ（オプション）
+
+**手動実行方法:**
 ```bash
-node scripts/check-site-categories.cjs
+# GitHub CLIを使用
+gh workflow run daily-automation.yml
+
+# 実行状況の確認
+gh run list --limit 3
+
+# ログの確認
+gh run view <run-id> --log
 ```
 
-#### カテゴリ一括更新
-```bash
-node scripts/update-categories-to-chuo.cjs
-```
-
-**機能:**
-- 「その他(other)」のサイトを自動判定
-- 南関競馬・地方競馬のキーワードを検出
-- デフォルトで中央競馬(chuo)に設定
-
----
-
-## 管理方法（Airtableで一元管理）
-
-### ⭐ 全ての管理はAirtableで実施
-
-**管理画面を廃止し、Airtableで直接管理します**
-
-**Airtable URL:**
-- https://airtable.com/appwdYkA3Fptn9TtN
-
-### 主な管理タスク
-
-#### 1. サイト品質の設定
-1. `Sites` テーブルを開く
-2. `SiteQuality` 列をクリック
-3. ドロップダウンから選択:
-   - `excellent` - 優良サイト（投稿確率100%・毎日）
-   - `normal` - 通常サイト（投稿確率33%・3日に1回）
-   - `malicious` - 悪質サイト（投稿確率20%・5日に1回）
-
-#### 2. サイトの承認/却下
-1. `Sites` テーブルを開く
-2. `IsApproved = FALSE` でフィルター
-3. `IsApproved` チェックボックスをクリック → 承認
-4. または、レコードを削除 → 却下
-
-#### 3. カテゴリの変更
-1. `Sites` テーブルを開く
-2. `Category` 列をクリック
-3. ドロップダウンから選択:
-   - `chuo` - 中央競馬
-   - `nankan` - 南関競馬
-   - `chihou` - 地方競馬
-
-#### 4. 口コミの承認/削除
-1. `Reviews` テーブルを開く
-2. `IsApproved = FALSE` でフィルター
-3. `IsApproved` チェックボックスをクリック → 承認
-4. または、レコードを削除 → 削除
-
----
-
-## 完了済みフェーズ
-
-### ✅ Phase 1-8: 完了
-
-- [x] Astro + Airtable統合
-- [x] サイトマップ・OGP画像自動生成
-- [x] エラーページ・UXコンポーネント
-- [x] SerpAPI統合
-- [x] 品質ベース口コミシステムv2
-- [x] **カスタム口コミシステムv3** ← 最新
-
-### ✅ Phase 9: カスタム口コミv3（2025-12-01完了）
-
-- [x] **300件の高品質カスタム口コミを用意**
-- [x] **評価別（⭐1〜5）ファイル分類**
-- [x] **カテゴリ別ユーザー名生成**（JRA、南関、地方競馬）
-- [x] **サイト品質に応じた口コミ自動選択**
-- [x] **GitHub Actions統合**（毎日AM4時自動投稿）
-- [x] **カテゴリ必須化**（その他を撲滅）
-- [x] **全88サイトのカテゴリ整理完了**
-
-### ✅ Phase 10: ランキング機能実装（2025-12-02完了）
-
-- [x] **総合ランキングページ作成**（`/ranking/`）
-- [x] **カテゴリ別ランキングページ作成**
-  - `/ranking/chuo/` - 中央競馬ランキング TOP20
-  - `/ranking/nankan/` - 南関競馬ランキング TOP20
-  - `/ranking/chihou/` - 地方競馬ランキング TOP20
-- [x] **ランキングスコア計算機能**
-  - 口コミ評価 × 口コミ数の重み付けスコア
-  - スコア順でソート表示
-- [x] **評価順ソート機能**（既存実装を確認）
-
----
-
-## 次のステップ（優先度順）
-
-### 📋 今後の実装推奨事項
-
-詳細は `ADVANCED_IMPROVEMENTS.md` を参照
-
-#### 第1週（最優先）
-1. **アフィリエイトリンク統合** 💰
-   - 公式サイトへのリンク追加
-   - 収益化開始
-   - 実装コスト: 低 | 効果: 非常に高
-
-2. **口コミ重複防止機能**
-   - 使用済み口コミIDを記録
-   - 30日間再利用しない
-   - 実装コスト: 低 | 効果: 高
-
-3. **メタディスクリプション動的生成**
-   - サイトごとに最適化
-   - CTR向上
-   - 実装コスト: 低 | 効果: 中
-
-#### 第2週
-4. **内部リンク構造最適化**
-   - 関連サイトセクション追加
-   - Googleクローラビリティ向上
-   - 実装コスト: 中 | 効果: 高
-
-5. **構造化データ拡充**
-   - FAQPage、BreadcrumbList追加
-   - リッチリザルト対応
-   - 実装コスト: 中 | 効果: 高
-
-6. ~~**ランキング記事作成**~~ ✅ 完了
-   - 「競馬予想サイト ランキング」で上位表示
-   - カテゴリ別TOP20（総合TOP30）
-   - 実装済み
-
-#### 第3週
-7. **検索機能実装**
-   - サイト名検索
-   - カテゴリ・評価フィルター
-   - 実装コスト: 中 | 効果: 高
-
-8. **ソート・フィルター機能**
-   - 評価順、口コミ数順、新着順
-   - 実装コスト: 中 | 効果: 中
-
-9. **よくある質問ページ**
-   - FAQ構造化データ
-   - 音声検索対応
-   - 実装コスト: 低 | 効果: 中
-
----
-
-## 期待される効果（1年後）
-
-### トラフィック
-- 現状: 月間1,000PV（推定）
-- 目標: 月間100,000PV以上
-
-### SEO順位
-- 「競馬予想サイト ランキング」: TOP 3入り
-- 「南関競馬 予想サイト」: TOP 3入り
-- 「競馬予想サイト 口コミ」: TOP 5入り
-
-### 収益
-- 3ヶ月後: 月5万円
-- 6ヶ月後: 月20万円
-- 1年後: 月50万円以上
-
----
-
-## 口コミ追加方法
-
-### カスタム口コミの追加手順
-
-1. **フォルダに移動**
-   ```bash
-   cd scripts/reviews-data/
-   ```
-
-2. **既存ファイルを編集または新規作成**
-   ```
-   ⭐1（辛口／クレーム寄り）.txt      # 悪質サイト用
-   ⭐2（少し辛口寄り）.txt            # 通常サイト用（低評価）
-   ⭐3（ニュートラル）.txt            # 通常サイト用（中評価）
-   ⭐4（少しポジティブ寄り）.txt      # 通常サイト用（高評価）
-   ※ ⭐5は使用しない
-   ```
-
-3. **フォーマット**
-   ```
-   タイトル1（10〜30文字）
-   口コミ本文1（80〜150文字推奨、競馬予想、買い目、回収率などのキーワードを含む）
-
-   タイトル2
-   口コミ本文2
-
-   タイトル3
-   口コミ本文3
-   ```
-
-4. **自動反映**
-   - 次回のGitHub Actions実行時（毎日AM4時）に自動で使用される
-   - 手動テスト: `node scripts/run-daily-reviews-v3.cjs`
-
----
-
-## トラブルシューティング
-
-### Airtable Checkbox フィールドの扱い
-
-**問題**: IsApprovedフィールドに `false` を送信しても無視される
-
-**解決策**:
-```javascript
-// ❌ 誤り
-return { Name: name, IsApproved: false };
-
-// ✅ 正しい（フィールドを省略）
-return { Name: name };
-```
-
-### カテゴリが「その他」になってしまう
-
-**解決策**:
-```bash
-# カテゴリ一括更新スクリプトを実行
-node scripts/update-categories-to-chuo.cjs
-```
-
----
-
-## 本番環境
-
-- **URL**: https://keiba-review.jp
-- **Netlify URL**: https://frabjous-taiyaki-460401.netlify.app (旧URL)
-- **GitHub**: https://github.com/apol0510/keiba-review-platform
-- **Airtable**: Base ID `appwdYkA3Fptn9TtN`
-- **Google Search Console**: https://search.google.com/search-console/ ✅ 登録済み（2025-12-10）
-
----
-
-## 参照ドキュメント
-
-- `ADVANCED_IMPROVEMENTS.md` - 詳細な改善提案書
-- `keiba-review-platform-spec.md` - 詳細仕様
-- `scripts/reviews-data/README.md` - 口コミデータの管理方法
-
----
-
-## 🔄 次回作業（2025-12-08）
-
-### 📧 SendGrid送信メールアドレス変更タスク
-
-**背景:**
-- 現在: `apolone_bkm@yahoo.co.jp` （個人メールアドレス）
-- 変更先: `support@keiba-review.jp` （プロフェッショナルなアドレス）
-
-**作業状況:**
-- ✅ `review-approved.ts` Netlify Function作成済み（口コミ承認通知 + 自動デプロイ）
-- ✅ Netlify Build Hook作成済み: `https://api.netlify.com/build_hooks/69359142203edf8b75f0c761`
-- ✅ デプロイ完了: https://frabjous-taiyaki-460401.netlify.app
-- ⏸️ Airtable Webhook設定が未完了（作業中断）
-
-### 次回作業の手順
-
-#### Step 1: SendGrid Sender Authentication設定
-
-1. **SendGridにログイン**
-   - https://app.sendgrid.com/
-
-2. **Single Sender Verificationで `support@keiba-review.jp` を追加**
-   - Settings → Sender Authentication → Single Sender Verification
-   - 「Create New Sender」をクリック
-   - From Email Address: `support@keiba-review.jp`
-   - From Name: `競馬予想サイト口コミプラットフォーム`
-   - 確認メールが `support@keiba-review.jp` に届く
-   - メール内のリンクをクリックして認証完了
-
-#### Step 2: Netlify環境変数を更新
-
-```bash
-# SENDGRID_FROM_EMAILを新しいアドレスに変更
-netlify env:set SENDGRID_FROM_EMAIL "support@keiba-review.jp"
-
-# 設定確認
-netlify env:list
-```
-
-#### Step 3: コードを更新 ✅ 完了
-
-以下のファイルで `SENDGRID_FROM_EMAIL` のデフォルト値を `support@keiba-review.jp` に変更済み:
-- `src/lib/email.ts:4` ✅
-- `.env.example:23` ✅
-
-環境変数が設定されていない場合、デフォルトで `support@keiba-review.jp` が使用されます。
-
-#### Step 4: Airtable Webhookを設定
-
-1. **Airtableベースを開く**
-   - https://airtable.com/appwdYkA3Fptn9TtN
-
-2. **Automationを作成**
-   - 左メニュー → 「Automations」
-   - 「Create Automation」をクリック
-
-3. **トリガー設定**
-   - Trigger: 「When record matches conditions」
-   - Table: **Reviews**
-   - Conditions:
-     - Field: **IsApproved**
-     - Condition: **is checked** (または **is true**)
-
-4. **アクション設定**
-   - Action: 「Send a request to URL」(Webhook)
-   - Method: **POST**
-   - URL: `https://keiba-review.jp/.netlify/functions/review-approved`
-   - Headers:
-     ```
-     Content-Type: application/json
-     ```
-
-5. **保存して有効化**
-   - Automationに名前をつける: 「口コミ承認時の通知とデプロイ」
-   - 「Turn on」で有効化
-
-#### Step 5: テスト実行
-
-1. **テスト口コミを投稿**
-   - サイトから新しい口コミを投稿
-   - Airtableで確認
-
-2. **Airtableで承認**
-   - Reviewsテーブルを開く
-   - テスト口コミの `IsApproved` チェックボックスをONにする
-
-3. **動作確認**
-   - ✅ Netlify Function Logsでログ確認: https://app.netlify.com/projects/frabjous-taiyaki-460401/logs/functions
-   - ✅ `support@keiba-review.jp` に承認通知メールが届く
-   - ✅ Netlifyで自動デプロイが開始される
-   - ✅ デプロイ完了後、サイトで口コミが表示される
-
-4. **ログ確認コマンド**
-   ```bash
-   # Netlify Function Logsをリアルタイム監視
-   netlify logs:function review-approved
-   ```
-
-#### Step 6: テストデータの削除
-
-```bash
-# テスト口コミを削除
-AIRTABLE_API_KEY=xxx AIRTABLE_BASE_ID=xxx node scripts/delete-latest-test-reviews.cjs
-```
-
-### 環境変数一覧（最新版）
-
-```bash
-# Airtable
-AIRTABLE_API_KEY="patXXXXXXXXXXXXXXXX..."
-AIRTABLE_BASE_ID="appwdYkA3Fptn9TtN"
-
-# SendGrid
-SENDGRID_API_KEY="SG.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..."
-SENDGRID_FROM_EMAIL="support@keiba-review.jp"  # ✅ 変更完了
-ADMIN_EMAIL="apolone_bkm@yahoo.co.jp"
-
-# Netlify Build Hook
-NETLIFY_BUILD_HOOK_URL="https://api.netlify.com/build_hooks/XXXXXXXXXXXXX"
-
-# SerpAPI（サイト自動検知）
-SERPAPI_KEY="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..."
-```
-
-### 実装済みファイル
-
-1. **`netlify/functions/review-approved.ts`**
-   - Airtable Webhookエンドポイント
-   - 口コミ承認時に以下を実行:
-     - ユーザーに承認通知メール送信
-     - Netlify Build Hookを呼び出して自動デプロイ
-
-2. **`scripts/delete-latest-test-reviews.cjs`**
-   - テスト口コミの検索・削除スクリプト
+**Webから手動実行:**
+1. https://github.com/apol0510/keiba-review/actions
+2. 「Daily Site Discovery & Data Maintenance」を選択
+3. 「Run workflow」をクリック
+4. 「Run workflow」を再度クリック
 
 ### トラブルシューティング
 
-**メールが届かない場合:**
-1. SendGridで `support@keiba-review.jp` が認証済みか確認
-2. Netlify環境変数が正しく設定されているか確認: `netlify env:list`
-3. Netlify Function Logsでエラー確認: `netlify logs:function review-approved`
+**ワークフローがエラーになる場合:**
+1. GitHub Secretsが正しく設定されているか確認
+2. Airtable APIキーの権限を確認（`data.records:read`, `data.records:write`）
+3. SerpAPIの利用上限を確認（無料枠: 月5,000クエリ）
+4. GitHub Actionsのログを確認
 
-**Webhookが動かない場合:**
-1. Airtable AutomationがONになっているか確認
-2. Webhook URLが正しいか確認
-3. Netlify Function Logsでリクエストが届いているか確認
+**Airtableにデータが登録されない場合:**
+1. Airtableベース構造が正しいか確認
+2. APIキーの権限を確認
+3. ベースIDが正しいか確認（URLの`app...`部分）
 
-**デプロイがトリガーされない場合:**
-1. Build Hook URLが正しいか確認
-2. Netlify Function Logsで `triggerDeploy()` のログを確認
-3. Netlifyのデプロイ履歴で手動デプロイが可能か確認
+**Netlifyデプロイが失敗する場合:**
+1. `NETLIFY_AUTH_TOKEN`と`NETLIFY_SITE_ID`が設定されているか確認
+2. Netlify CLIがインストールされているか確認（ワークフロー内で自動インストール）
+3. デプロイ権限があるか確認
 
----
+## 参照
 
-## 作業履歴
-
-### 2025-12-10
-
-1. ✅ **南関アナリティクス登録完了**
-   - サイト名: 南関アナリティクス
-   - URL: https://nankan-analytics.keiba.link/
-   - Slug: `nankan-analytics`
-   - Category: nankan（南関競馬）
-   - SiteQuality: excellent
-   - 初回口コミ5件投稿（⭐3×2件、⭐4×3件、平均3.6）
-   - 現在ランキング: 3位 / 4サイト中（280pts）
-   - スクリーンショット: 自動取得待ち（今日午後4時または明日午前4時）
-
-2. ✅ **Google Search Console 登録完了**
-   - サイトプロパティ追加: https://keiba-review.jp
-   - 所有権確認: HTMLタグ方式で完了
-   - 確認コード: `LJ1qNn3SZFuo5zHjLtI58OZSKKXXeVugmiXG2SPGMe8`
-   - サイトマップ送信: https://keiba-review.jp/sitemap.xml
-   - 重要ページのインデックス登録リクエスト完了:
-     - https://keiba-review.jp/
-     - https://keiba-review.jp/ranking/nankan/
-     - https://keiba-review.jp/keiba-yosou/nankan-analytics/
-     - https://keiba-review.jp/keiba-yosou/apolon-keibanahibi-com/
-
-3. ✅ **URL修正（Netlify → 独自ドメイン）**
-   - `astro.config.mjs`: site URL更新
-   - `src/pages/sitemap.xml.ts`: SITE_URL更新
-   - `public/robots.txt`: Sitemap URL更新
-   - ランキングページ4件: 構造化データURL更新
-   - 全て `frabjous-taiyaki-460401.netlify.app` → `keiba-review.jp` に変更
-
-4. ✅ **データ不整合調査と解決**
-   - 問題: Airtable直接クエリで口コミ0件と誤判定
-   - 原因: Link to another recordフィールドはfilterByFormulaで動作せず
-   - 解決: JavaScriptでフィルタリングする方式が正解
-   - 南関競馬な日々: 実際は9件の口コミあり（⭐3.78、1位）
-
-### 2025-12-08（夜）
-
-1. 🔄 **口コミ承認時の自動化ワークフロー実装**（進行中）
-   - Netlify Build Hook作成: `https://api.netlify.com/build_hooks/69359142203edf8b75f0c761`
-   - `netlify/functions/review-approved.ts` 作成
-     - 機能1: ユーザーへの承認通知メール送信
-     - 機能2: Netlify Build Hookで自動デプロイ
-   - Netlify環境変数設定: `NETLIFY_BUILD_HOOK_URL`
-   - デプロイ完了: https://frabjous-taiyaki-460401.netlify.app
-   - **次のステップ**:
-     - SendGrid Sender Authenticationで `support@keiba-review.jp` を認証
-     - `SENDGRID_FROM_EMAIL` を `support@keiba-review.jp` に変更
-     - Airtable Webhookを設定
-     - 動作テスト
-
-2. ✅ **SendGridメール送信問題の解決**
-   - 問題: `noreply@frabjous-taiyaki-460401.netlify.app` が未認証
-   - 解決: `apolone_bkm@yahoo.co.jp` （認証済み）に変更
-   - テスト成功: メールが迷惑メールフォルダに届く
-   - 次回改善: `support@keiba-review.jp` に変更予定
-
-### 2025-12-06
-
-1. ✅ **自動検証システム実装**（GitHub Actions統合）
-   - **目的**: 朝の目視チェックを不要にし、バグ・データ不整合を自動検出
-   - **スクリプト**: `scripts/verify-daily-execution.cjs`（380行）
-   - **検証内容**:
-     - 今日の口コミがAirtableに実際に登録されているか
-     - SiteQualityフィールドの整合性（excellent/normal/malicious）
-     - 優良サイトの評価範囲（⭐3-4のみ）
-     - 悪質サイトの評価範囲（⭐1-3のみ）
-     - ⭐5が使用されていないか
-   - **エラー管理**:
-     - 重要度レベル: CRITICAL / WARNING / INFO
-     - カテゴリ: DATA_CONSISTENCY / SITEQUALITY / RATING_VIOLATION / COUNT_MISMATCH
-     - 詳細なエラーレポート生成
-     - 推奨対応策の自動表示
-   - **GitHub Actions統合**:
-     - `.github/workflows/auto-post-reviews.yml` を更新
-     - 毎日の口コミ投稿後に自動検証を実行
-     - 検証失敗時はワークフロー全体を失敗させる（`continue-on-error: false`）
-     - 成功/失敗の明確な通知
-   - **効果**: 「成功」と表示されても実際には成功していない問題を防止
-
-2. ✅ **テスト口コミ削除スクリプト作成**
-   - `scripts/delete-test-review.cjs` - テスト投稿を検索・削除
-   - 「テスト投稿 - 削除してください」（テストユーザー123）を削除
-   - Airtableから正常に削除完了
-
-### 2025-12-05
-
-1. ✅ **サイト品質管理のAirtable一元化**
-   - `SiteQuality` フィールドを追加（excellent/normal/malicious）
-   - `run-daily-reviews-v3.cjs` をAirtable SiteQuality対応に修正
-   - `scripts/config/site-ratings.json` 方式を廃止
-   - **管理方法**: Airtableで直接ドロップダウンから選択
-   - **投稿確率**: excellent=100%, normal=33%, malicious=20%
-   - **効果**: 手動CLIツール不要、Webから簡単管理可能
-
-2. ✅ **Web管理画面の完全廃止**
-   - `/admin/` 配下の全ページを削除
-   - `/api/admin/` エンドポイントを削除
-   - `AdminDashboard.tsx` を削除
-   - `SiteQualityManager.tsx` を削除
-   - **理由**: 管理画面が動作せず、Airtableで十分
-   - **効果**: メンテナンスコスト削減、管理が確実に動作
-
-### 2025-12-04（夜）
-
-1. ✅ **GitHub Actionsビルドタイムアウト対策**
-   - `.github/workflows/auto-rebuild-on-review.yml`にタイムアウト30分を設定
-   - Node.jsメモリを4096MBに増量（`NODE_OPTIONS: --max-old-space-size=4096`）
-   - `src/lib/airtable.ts`の`getApprovedSites()`にキャッシュ機能追加
-   - **効果**: 504エラー解消、ビルド成功率100%
-
-2. ✅ **口コミ重複防止システム実装**
-   - 各口コミにユニークID付与（例: `star3-15`, `star2-42`）
-   - 使用済みID管理関数追加（`getUsedReviewIds()`, `recordUsedReviewId()`）
-   - 30日間は同じ口コミを再利用しない仕組み
-   - Airtable Sitesテーブルに`UsedReviewIDs`フィールド追加（Long text）
-   - **効果**: 口コミの多様性向上、Google重複コンテンツペナルティ回避
-
-3. ✅ **CLAUDE.md更新**
-   - ⭐5評価の完全削除を明記
-   - 口コミファイル数を250件に訂正（⭐5削除済み）
-   - 重複防止機能の説明追加
-   - Airtable新フィールド情報追加
-
-### 2025-12-04（朝）
-
-1. ✅ Auto Rebuild on New Reviewワークフロー修正
-   - GitHub Actionsの非推奨構文（`::set-output`）を修正
-   - インラインスクリプトから外部スクリプト（`check-new-reviews.cjs`）に変更
-   - Airtableフィールド名修正（`CreatedAt` → `Created`）
-   - 最新のGitHub Actions出力方式（`GITHUB_OUTPUT`）に対応
-
-2. ✅ 口コミ評価分散ロジックの大幅改善
-   - **既存口コミ平均を考慮する機能追加**
-   - **目標平均2.8〜3.2を厳密に維持**（従来は3.0〜3.2）
-   - 連続同評価防止機能（最新3件が同じ評価の場合、強制的に変更）
-   - 調整ロジック:
-     - 平均 > 3.2 → ⭐2(70%) or ⭐3(30%) で下げる
-     - 平均 < 2.8 → ⭐3(60%) or ⭐4(40%) で上げる
-     - 2.8 ≤ 平均 ≤ 3.2 → ⭐2(25%), ⭐3(60%), ⭐4(15%)
-   - jiro8サイト問題（⭐4が5件連続、平均4.0）を解決
-
-### 2025-12-02
-
-1. ✅ カテゴリ別禁止ワードフィルター実装
-   - 中央競馬: 南関・地方競馬関連ワードをブロック
-   - 南関競馬: 中央競馬G1レース関連ワードをブロック
-   - 地方競馬: JRA・南関競馬関連ワードをブロック
-
-2. ✅ 口コミ品質管理システム改善
-   - ⭐5評価の完全削除（過剰なポジティブ評価を回避）
-   - 評価範囲変更:
-     - 悪質サイト: ⭐1〜3（⭐4と⭐5は使用禁止）
-     - 通常サイト: ⭐2〜4（平均3程度、⭐5は使用禁止）
-   - 自動投稿専用NGワード追加:
-     - サポート関連: 「サポート」「対応が遅い」等
-     - 詐欺・悪質系: 「詐欺」「騙された」等
-     - 具体的批判: 「最悪」「ひどい」「金返せ」等
-
-3. ✅ サイト品質管理CLIツール作成
-   - `manage-site-quality.cjs` - 悪質サイトの簡単管理
-   - コマンド: list / add / remove / search
-
-4. ✅ Airtable既存データの修正
-   - ⭐5口コミ550件を⭐4に一括変更
-   - `fix-star5-reviews.cjs` スクリプト作成
-   - サイト詳細ページで⭐5が表示されなくなる
-
-5. ✅ 統合管理ダッシュボード実装
-   - `/admin/dashboard` - Webベースの統一管理画面
-   - `AdminDashboard.tsx` - Reactコンポーネント（タブ式UI）
-   - `/api/admin/malicious-sites.ts` - 悪質サイト管理API（GET/POST/DELETE）
-   - `/api/admin/star5-reviews.ts` - ⭐5口コミ修正API（GET/POST）
-   - リアルタイムAirtable同期機能
-   - 統計情報・悪質サイト管理・⭐5修正の3タブ構成
-
-### 2025-12-01
-
-### 実施した作業
-1. ✅ トップページ最新口コミセクションの修正
-   - ReviewCard.astroのフィールド名不一致を修正
-   - UIデザイン改善
-
-2. ✅ カテゴリ別口コミ生成システム実装
-   - カテゴリ別ユーザー名生成（JRA、南関、地方競馬）
-   - run-daily-reviews-v2.cjs更新
-
-3. ✅ 承認画面のカテゴリ必須化
-   - pending-sites.astroにカテゴリ選択フィールド追加
-   - approve-site.ts APIでバリデーション追加
-
-4. ✅ 全88サイトのカテゴリ一括更新
-   - check-site-categories.cjs作成
-   - update-categories-to-chuo.cjs作成
-   - 69件をother→chuoに更新
-   - その他(other)を完全に撲滅
-
-5. ✅ カスタム口コミシステムv3実装
-   - 300件の高品質口コミファイル配置
-   - run-daily-reviews-v3.cjs作成
-   - GitHub Actions更新（v2→v3）
-
-6. ✅ 総合改善計画書作成
-   - ADVANCED_IMPROVEMENTS.md作成
-   - 7つのPhase、優先度マトリクス付き
-   - 期待効果の数値化
-
-### 次回作業の開始方法
-
-#### すぐに実装できる高優先度タスク
-
-1. **アフィリエイトリンク追加**（収益化）
-   ```typescript
-   // src/pages/keiba-yosou/[slug].astro
-   <a href={site.url}
-      target="_blank"
-      rel="noopener noreferrer sponsored"
-      class="cta-button">
-     公式サイトで無料予想を見る →
-   </a>
-   ```
-
-2. **ランキング記事作成**（SEO強化）
-   ```bash
-   # 新しいページを作成
-   src/pages/ranking/
-   ├── index.astro           # 総合ランキング
-   ├── chuo.astro            # 中央競馬ランキング
-   ├── nankan.astro          # 南関競馬ランキング
-   └── chihou.astro          # 地方競馬ランキング
-   ```
-
-3. **内部リンク構造最適化**
-   ```astro
-   <!-- サイト詳細ページに関連サイトセクション追加 -->
-   <section class="related-sites">
-     <h3>同じカテゴリの競馬予想サイト</h3>
-     {relatedSites.map(site => (
-       <a href={`/keiba-yosou/${site.slug}/`}>{site.name}</a>
-     ))}
-   </section>
-   ```
-
-### コマンドクイックリファレンス
-
-```bash
-# 口コミテスト投稿
-node scripts/run-daily-reviews-v3.cjs
-
-# カテゴリ確認
-node scripts/check-site-categories.cjs
-
-# サイト自動検知
-node scripts/fetch-keiba-sites.js
-
-# デプロイ
-git add . && git commit -m "message" && git push origin main
-```
+詳細仕様: `keiba-review-spec.md`

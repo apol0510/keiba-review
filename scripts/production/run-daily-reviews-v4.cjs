@@ -4,11 +4,12 @@
  * v4の変更点:
  * 1. SiteQuality を 3タイプ → 5タイプに拡張
  * 2. premium: ⭐3-5（毎日100%、南関アナリティクス専用）
- * 3. excellent: ⭐3-4（ほぼ毎日80%）
- * 4. normal: ⭐2-4（約5日に1回20%）
- * 5. poor: ⭐1-3（約7日に1回14%）
- * 6. malicious: ⭐1-2（約10日に1回10%）
+ * 3. excellent: ⭐3-5（毎日100%）※修正済み
+ * 4. normal: ⭐2-4（2-3日に1回40%）
+ * 5. poor: ⭐1-3（3-4日に1回30%）
+ * 6. malicious: ⭐1-2（5日に1回20%）
  * 7. 口コミテンプレート500件に倍増対応
+ * 8. 投稿確率を調整（excellent 80%→100%, normal 20%→40%, etc.）
  */
 
 const { uploadReview } = require('./upload-adjusted-reviews.cjs');
@@ -46,10 +47,10 @@ const MAX_REVIEWS_PER_SITE = {
  */
 const POSTING_FREQUENCY = {
   premium: 1.0,      // 100% (毎日)
-  excellent: 0.8,    // 80% (ほぼ毎日、5日で4回)
-  normal: 0.2,       // 20% (約5日に1回)
-  poor: 0.14,        // 14% (約7日に1回)
-  malicious: 0.1     // 10% (約10日に1回)
+  excellent: 1.0,    // 100% (毎日) ※上限で制御
+  normal: 0.4,       // 40% (2-3日に1回)
+  poor: 0.3,         // 30% (3-4日に1回)
+  malicious: 0.2     // 20% (5日に1回)
 };
 
 /**
@@ -144,7 +145,7 @@ function loadReviewsFromFile(filePath) {
  * 全評価の口コミを読み込み
  */
 function loadAllReviews() {
-  const reviewsDir = path.join(__dirname, 'reviews-data');
+  const reviewsDir = path.join(__dirname, '../reviews-data');
   const allReviews = {
     1: loadReviewsFromFile(path.join(reviewsDir, '⭐1（辛口／クレーム寄り）.txt')),
     2: loadReviewsFromFile(path.join(reviewsDir, '⭐2（少し辛口寄り）.txt')),
@@ -181,11 +182,12 @@ function getSiteRating(siteQuality) {
     };
   }
 
-  // ✅ excellent: ⭐3-4（ほぼ毎日80%）
+  // ✅ excellent: ⭐3-5（ほぼ毎日80%）
   if (quality === 'excellent') {
     return {
       type: 'excellent',
-      starRange: [3, 4],
+      starRange: [3, 5],
+      starWeights: { 3: 0.20, 4: 0.60, 5: 0.20 }, // ⭐3(20%), ⭐4(60%), ⭐5(20%)
       weighted: true,
       probability: POSTING_FREQUENCY.excellent
     };
@@ -316,9 +318,18 @@ function selectStars(starRange, weighted, type, currentAvg, reviewCount, starWei
     }
   }
 
-  if (weighted && type === 'excellent') {
-    // excellentサイト用の重み付け選択
-    return Math.random() < 0.6 ? 4 : 3;
+  if (weighted && type === 'excellent' && starWeights) {
+    // excellentサイト用の重み付け選択（⭐3-5対応）
+    const rand = Math.random();
+    let cumulative = 0;
+
+    for (const [star, weight] of Object.entries(starWeights)) {
+      cumulative += weight;
+      if (rand < cumulative) {
+        return parseInt(star);
+      }
+    }
+    return 4; // フォールバック
   }
 
   // デフォルト: ランダム選択
@@ -489,10 +500,10 @@ async function postReview(site, allReviews) {
   console.log('🚀 口コミ自動投稿スクリプト v4 開始\n');
   console.log('📊 5タイプ対応:');
   console.log('  🌟 premium: ⭐3-5 (毎日100%)');
-  console.log('  ✅ excellent: ⭐3-4 (ほぼ毎日80%)');
-  console.log('  ⚪ normal: ⭐2-4 (約5日に1回20%)');
-  console.log('  ⚠️ poor: ⭐1-3 (約7日に1回14%)');
-  console.log('  ❌ malicious: ⭐1-2 (約10日に1回10%)\n');
+  console.log('  ✅ excellent: ⭐3-5 (毎日100%)');
+  console.log('  ⚪ normal: ⭐2-4 (2-3日に1回40%)');
+  console.log('  ⚠️ poor: ⭐1-3 (3-4日に1回30%)');
+  console.log('  ❌ malicious: ⭐1-2 (5日に1回20%)\n');
 
   const allReviews = loadAllReviews();
   const sitesToPost = await selectSitesToPost(5);

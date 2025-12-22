@@ -5,7 +5,7 @@
 1. Airtableにログイン: https://airtable.com/
 2. トークン作成ページに移動: https://airtable.com/create/tokens
 3. 「Create new token」をクリック
-4. トークン名を入力（例: `keiba-review-platform-production`）
+4. トークン名を入力（例: `keiba-review-production`）
 5. Scopesを設定:
    - `data.records:read` ✓
    - `data.records:write` ✓

@@ -29,19 +29,14 @@ jobs:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/fetch-keiba-sites.js
+        run: node scripts/production/fetch-keiba-sites.js
 
       - name: Auto-categorize sites
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/auto-categorize-sites.js
-
-      - name: Generate reviews for new sites
-        env:
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/seed-reviews.js
+        run: node scripts/production/auto-categorize-sites.js
+        continue-on-error: true  # カテゴリ更新エラーでもワークフロー継続
 
       - name: Deploy to Netlify
         env:

@@ -34,7 +34,7 @@ GitHub Actionsで毎日2回（午前4時・午後4時 JST）、承認済みサ�
 
 ### 2. GitHub Secretsを設定
 
-1. https://github.com/apol0510/keiba-review-platform/settings/secrets/actions にアクセス
+1. https://github.com/apol0510/keiba-review/settings/secrets/actions にアクセス
 
 2. 以下の3つのSecretを追加:
 
@@ -65,7 +65,7 @@ git push origin main
 
 #### 手動実行（推奨）
 
-1. https://github.com/apol0510/keiba-review-platform/actions にアクセス
+1. https://github.com/apol0510/keiba-review/actions にアクセス
 2. 「Auto Screenshot Capture」ワークフローを選択
 3. 「Run workflow」をクリック
 4. 「Run workflow」を再度クリック
@@ -127,7 +127,7 @@ git push origin main
    - AIRTABLE_BASE_ID（既存）
 
 2. **ワークフローのログを確認**
-   - https://github.com/apol0510/keiba-review-platform/actions
+   - https://github.com/apol0510/keiba-review/actions
    - 失敗したワークフローをクリック
    - 詳細なエラーメッセージを確認
 
@@ -169,7 +169,7 @@ gh workflow run auto-screenshots.yml
 ```
 
 または、Webから:
-1. https://github.com/apol0510/keiba-review-platform/actions
+1. https://github.com/apol0510/keiba-review/actions
 2. 「Auto Screenshot Capture」
 3. 「Run workflow」
 

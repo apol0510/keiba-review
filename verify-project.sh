@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # プロジェクト識別確認スクリプト
-# Keiba review platform プロジェクト専用
+# Keiba-review プロジェクト専用
 
 set -e
 
@@ -12,8 +12,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 期待されるプロジェクト情報
-EXPECTED_PROJECT_NAME="Keiba review platform"
-EXPECTED_DIR_NAME="keiba-review-platform"
+EXPECTED_PROJECT_NAME="Keiba-review"
+EXPECTED_DIR_NAME="keiba-review"
 
 echo ""
 echo "🔍 プロジェクト識別システム - 確認開始"
@@ -39,7 +39,7 @@ else
     echo "   実際値: $DIR_BASENAME"
     echo ""
     echo -e "${YELLOW}⚠️  正しいディレクトリに移動してください:${NC}"
-    echo "   cd '/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/Keiba review platform/keiba-review-platform'"
+    echo "   cd '/Users/apolon/Library/Mobile Documents/com~apple~CloudDocs/WorkSpace/Keiba review platform/keiba-review'"
     exit 1
 fi
 
@@ -50,7 +50,7 @@ if [ -f "CLAUDE.md" ]; then
     echo -e "${GREEN}✅ CLAUDE.md: 存在確認${NC}"
 
     # プロジェクト名の確認
-    if grep -q "Keiba review platform" CLAUDE.md; then
+    if grep -q "Keiba-review" CLAUDE.md; then
         echo -e "${GREEN}✅ プロジェクト名: 正常${NC}"
         echo "   $EXPECTED_PROJECT_NAME"
     else
@@ -83,7 +83,7 @@ echo ""
 NANKAN_ANALYTICS_CHECK="../nankan-analytics"
 if [ -d "$NANKAN_ANALYTICS_CHECK" ]; then
     echo -e "${YELLOW}⚠️  注意: 他プロジェクト（nankan-analytics）が検出されました${NC}"
-    echo "   このセッションでは Keiba review platform のみを扱ってください"
+    echo "   このセッションでは Keiba-review のみを扱ってください"
     echo ""
 fi
 
@@ -92,7 +92,7 @@ echo "============================================"
 echo -e "${GREEN}✅ 確認完了: 正しいプロジェクト（$EXPECTED_PROJECT_NAME）で作業中です${NC}"
 echo ""
 echo "📝 重要事項:"
-echo "   - このセッションでは Keiba review platform のみを扱う"
+echo "   - このセッションでは Keiba-review のみを扱う"
 echo "   - nankan-analytics やその他のプロジェクトのファイルを読み込まない"
 echo "   - ../ を使った他プロジェクトへのアクセスを行わない"
 echo ""
