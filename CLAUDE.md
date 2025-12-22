@@ -90,22 +90,28 @@ node scripts/production/schema-validator.cjs
 # 必須 - サイト設定
 SITE_URL=https://keiba-review.jp  # 本番ドメイン（canonical URL生成に使用）
 
-# 必須 - Supabase
-PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=xxx
-SUPABASE_SERVICE_KEY=xxx
+# 推奨 - Google Analytics 4（トラフィック分析）
+PUBLIC_GA_ID=G-XXXXXXXXXX  # GA4測定ID
 
-# 任意 - reCAPTCHA v3（スパム対策）
+# 必須 - Airtable（データベース）
+AIRTABLE_API_KEY=patXXXXXXXXXXXXXXXX  # Personal Access Token
+AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX     # ベースID
+
+# 推奨 - SerpAPI（サイト自動検知）
+SERPAPI_KEY=your-serpapi-key-here  # 無料枠: 月5,000クエリ
+
+# オプション - Netlify（自動デプロイ）
+NETLIFY_AUTH_TOKEN=your-netlify-token
+NETLIFY_SITE_ID=your-site-id
+
+# オプション - SendGrid（メール通知・未実装）
+SENDGRID_API_KEY=xxx
+SENDGRID_FROM_EMAIL=support@keiba-review.jp
+ADMIN_EMAIL=your-email@example.com
+
+# オプション - reCAPTCHA v3（スパム対策・未実装）
 PUBLIC_RECAPTCHA_SITE_KEY=xxx
 RECAPTCHA_SECRET_KEY=xxx
-
-# 任意 - Bing Web Search API（サイト自動検知）
-BING_API_KEY=xxx
-
-# 任意 - SendGrid（通知）
-SENDGRID_API_KEY=xxx
-SENDGRID_FROM_EMAIL=noreply@your-domain.com
-ADMIN_EMAIL=your-email@example.com
 ```
 
 ## データベース（Supabase）
@@ -323,6 +329,81 @@ ADMIN_EMAIL              # メール通知用
   - `NETLIFY_AUTH_TOKEN`（オプション）
   - `NETLIFY_SITE_ID`（オプション）
 - [x] 手動ワークフロー実行テスト成功
+
+## Google Analytics 4統合ガイド
+
+### GA4とは
+- Googleの最新アクセス解析ツール
+- 無料で利用可能（月間1,000万イベントまで）
+- リアルタイム分析、ユーザー行動追跡、コンバージョン測定
+
+### セットアップ手順
+
+1. **Google Analytics 4アカウント作成**
+   - https://analytics.google.com/ にアクセス
+   - 「管理」→「プロパティを作成」
+   - プロパティ名: 「競馬予想サイト口コミ」
+   - レポートのタイムゾーン: 日本
+   - 通貨: 日本円（JPY）
+
+2. **測定IDの取得**
+   - 「管理」→「データストリーム」→「ウェブ」
+   - ウェブサイトURL: `https://keiba-review.jp`
+   - ストリーム名: 「keiba-review.jp」
+   - 測定ID（`G-XXXXXXXXXX`）をコピー
+
+3. **環境変数の設定**
+   ```bash
+   # Netlifyの場合
+   netlify env:set PUBLIC_GA_ID "G-XXXXXXXXXX"
+
+   # ローカル開発の場合 (.env)
+   PUBLIC_GA_ID=G-XXXXXXXXXX
+   ```
+
+4. **デプロイ**
+   - コードは既に実装済み（BaseLayout.astro）
+   - 環境変数設定後、デプロイすれば自動的に有効化
+
+### 測定される主要イベント
+
+**自動で測定されるイベント:**
+- `page_view` - ページ閲覧
+- `first_visit` - 初回訪問
+- `session_start` - セッション開始
+
+**カスタムイベント（実装済み）:**
+- `click` - 外部リンククリック
+  - `event_category: 'outbound'`
+  - `event_label: リンクURL`
+  - `link_text: リンクテキスト`
+
+### 推奨する追加設定
+
+**1. Search Consoleとの連携**
+- GA4管理画面 → 「Search Consoleのリンク」
+- 検索キーワード、クリック率、表示回数を確認可能
+
+**2. コンバージョン設定**
+- 外部リンククリック（nankan-analyticsへの遷移）をコンバージョンとして登録
+- 「管理」→「イベント」→「click」→「コンバージョンとしてマークを付ける」
+
+**3. カスタムレポート作成**
+- サイト別の外部リンククリック率
+- カテゴリ別のページビュー
+- デバイス別のコンバージョン率
+
+### トラブルシューティング
+
+**データが表示されない場合:**
+1. 環境変数が正しく設定されているか確認（`PUBLIC_GA_ID`）
+2. 測定IDが正しいか確認（`G-`で始まる）
+3. デプロイが完了しているか確認
+4. GA4は最大24時間遅延する場合がある（リアルタイムレポートで即座に確認可能）
+
+**リアルタイムで確認する方法:**
+1. GA4管理画面 → 「レポート」→「リアルタイム」
+2. 自分でサイトにアクセスして、カウントが増えるか確認
 
 ## SerpAPI統合ガイド
 

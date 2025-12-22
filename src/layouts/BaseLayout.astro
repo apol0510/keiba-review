@@ -18,6 +18,7 @@ const fullTitle = title === 'トップ' ? siteTitle : `${title} | ${siteTitle}`;
 const siteUrl = import.meta.env.SITE_URL || 'https://frabjous-taiyaki-460401.netlify.app';
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
 const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+const GA_ID = import.meta.env.PUBLIC_GA_ID;
 ---
 
 <!doctype html>
@@ -62,6 +63,21 @@ const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Google Analytics 4 -->
+    {GA_ID && (
+      <>
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+        <script is:inline define:vars={{ GA_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', GA_ID, {
+            page_path: window.location.pathname,
+          });
+        </script>
+      </>
+    )}
 
     <title>{fullTitle}</title>
   </head>
@@ -205,6 +221,29 @@ const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`
 
       menuButton?.addEventListener('click', () => {
         mobileMenu?.classList.toggle('hidden');
+      });
+    </script>
+
+    <script is:inline>
+      // External link tracking for GA4
+      document.addEventListener('DOMContentLoaded', () => {
+        // Track all external links (target="_blank")
+        document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+          link.addEventListener('click', (e) => {
+            const href = link.href;
+            const text = link.textContent?.trim() || '';
+
+            // Send event to GA4 if available
+            if (typeof gtag !== 'undefined') {
+              gtag('event', 'click', {
+                event_category: 'outbound',
+                event_label: href,
+                link_text: text,
+                value: 1
+              });
+            }
+          });
+        });
       });
     </script>
   </body>
