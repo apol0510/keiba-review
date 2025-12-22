@@ -371,8 +371,9 @@ function generateUsername(category) {
 
 /**
  * 投稿対象サイトを選択
+ * 確率フィルターにより自動的に絞り込まれる
  */
-async function selectSitesToPost(maxSites = 5) {
+async function selectSitesToPost() {
   console.log('📊 投稿対象サイトを選択中...\n');
 
   const allSites = await base('Sites').select({
@@ -428,7 +429,8 @@ async function selectSitesToPost(maxSites = 5) {
 
   console.log(`\n📊 投稿対象: ${candidates.length}サイト\n`);
 
-  return candidates.slice(0, maxSites);
+  // 確率フィルターで既に絞られているので、全候補を返す
+  return candidates;
 }
 
 /**
@@ -506,7 +508,7 @@ async function postReview(site, allReviews) {
   console.log('  ❌ malicious: ⭐1-2 (5日に1回20%)\n');
 
   const allReviews = loadAllReviews();
-  const sitesToPost = await selectSitesToPost(5);
+  const sitesToPost = await selectSitesToPost(); // 引数削除（全候補を取得）
 
   if (sitesToPost.length === 0) {
     console.log('📭 本日投稿する対象サイトがありません');
