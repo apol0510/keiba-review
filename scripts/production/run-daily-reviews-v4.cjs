@@ -4,12 +4,12 @@
  * v4の変更点:
  * 1. SiteQuality を 3タイプ → 5タイプに拡張
  * 2. premium: ⭐3-5（毎日100%、南関アナリティクス専用）
- * 3. excellent: ⭐3-5（毎日100%）※修正済み
+ * 3. excellent: ⭐3-5（毎日100%、平均4.1）⭐3:15%, ⭐4:60%, ⭐5:25%
  * 4. normal: ⭐2-4（2-3日に1回40%）
  * 5. poor: ⭐1-3（3-4日に1回30%）
  * 6. malicious: ⭐1-2（5日に1回20%）
  * 7. 口コミテンプレート500件に倍増対応
- * 8. 投稿確率を調整（excellent 80%→100%, normal 20%→40%, etc.）
+ * 8. ⭐3テンプレートを2種類に分離（ニュートラル/ややポジティブ）
  */
 
 const { uploadReview } = require('./upload-adjusted-reviews.cjs');
@@ -191,7 +191,7 @@ function getSiteRating(siteQuality) {
     return {
       type: 'excellent',
       starRange: [3, 5],
-      starWeights: { 3: 0.20, 4: 0.60, 5: 0.20 }, // ⭐3(20%), ⭐4(60%), ⭐5(20%)
+      starWeights: { 3: 0.15, 4: 0.60, 5: 0.25 }, // ⭐3(15%), ⭐4(60%), ⭐5(25%)
       weighted: true,
       probability: POSTING_FREQUENCY.excellent
     };
@@ -544,7 +544,7 @@ async function postReview(site, allReviews) {
   console.log('🚀 口コミ自動投稿スクリプト v4 開始\n');
   console.log('📊 5タイプ対応:');
   console.log('  🌟 premium: ⭐3-5 (毎日100%)');
-  console.log('  ✅ excellent: ⭐3-5 (毎日100%)');
+  console.log('  ✅ excellent: ⭐3-5 (毎日100%, 平均4.1) ⭐3:15% ⭐4:60% ⭐5:25%');
   console.log('  ⚪ normal: ⭐2-4 (2-3日に1回40%)');
   console.log('  ⚠️ poor: ⭐1-3 (3-4日に1回30%)');
   console.log('  ❌ malicious: ⭐1-2 (5日に1回20%)\n');
