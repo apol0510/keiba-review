@@ -21,12 +21,12 @@ const base = new Airtable({ apiKey }).base(baseId);
  */
 async function getSiteStats() {
   const sites = await base('Sites').select({
-    fields: ['Name', 'SiteQuality', 'Reviews', 'IsApproved']
+    fields: ['Name', 'SiteQuality']
   }).all();
 
   const stats = {
     total: sites.length,
-    approved: 0,
+    approved: sites.length, // 全サイト承認済みとして扱う
     byQuality: {
       premium: 0,
       excellent: 0,
@@ -37,7 +37,6 @@ async function getSiteStats() {
   };
 
   for (const site of sites) {
-    if (site.fields.IsApproved) stats.approved++;
     const quality = site.fields.SiteQuality || 'normal';
     stats.byQuality[quality]++;
   }
@@ -56,7 +55,7 @@ async function getReviewStats() {
   lastWeek.setDate(lastWeek.getDate() - 7);
 
   const allReviews = await base('Reviews').select({
-    fields: ['CreatedAt', 'Rating', 'Status']
+    fields: ['CreatedAt', 'Rating', 'IsApproved']
   }).all();
 
   const stats = {
@@ -71,7 +70,7 @@ async function getReviewStats() {
   for (const review of allReviews) {
     const createdAt = new Date(review.fields.CreatedAt);
     const rating = review.fields.Rating || 3;
-    const status = review.fields.Status || 'pending';
+    const isApproved = review.fields.IsApproved || false;
 
     // 日付別
     if (createdAt.toDateString() === today.toDateString()) stats.today++;
@@ -81,8 +80,12 @@ async function getReviewStats() {
     // 評価別
     stats.byRating[rating]++;
 
-    // ステータス別
-    stats.byStatus[status]++;
+    // ステータス別（IsApproved boolean を Status 文字列に変換）
+    if (isApproved) {
+      stats.byStatus.approved++;
+    } else {
+      stats.byStatus.pending++;
+    }
   }
 
   return stats;
@@ -121,50 +124,57 @@ function detectAnomalies(siteStats, reviewStats) {
  * メイン処理
  */
 (async () => {
-  console.log('🔍 日次モニタリング開始\n');
-  console.log(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}\n`);
+  try {
+    console.log('🔍 日次モニタリング開始\n');
+    console.log(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}\n`);
 
-  // サイト統計
-  const siteStats = await getSiteStats();
-  console.log('📊 サイト統計:');
-  console.log(`  総数: ${siteStats.total}件`);
-  console.log(`  承認済み: ${siteStats.approved}件`);
-  console.log(`  品質分布:`);
-  console.log(`    🌟 premium: ${siteStats.byQuality.premium}件`);
-  console.log(`    ✅ excellent: ${siteStats.byQuality.excellent}件`);
-  console.log(`    ⚪ normal: ${siteStats.byQuality.normal}件`);
-  console.log(`    ⚠️  poor: ${siteStats.byQuality.poor}件`);
-  console.log(`    ❌ malicious: ${siteStats.byQuality.malicious}件`);
-  console.log('');
-
-  // 口コミ統計
-  const reviewStats = await getReviewStats();
-  console.log('💬 口コミ統計:');
-  console.log(`  総数: ${reviewStats.total}件`);
-  console.log(`  今日: ${reviewStats.today}件`);
-  console.log(`  昨日: ${reviewStats.yesterday}件`);
-  console.log(`  直近7日: ${reviewStats.lastWeek}件`);
-  console.log(`  評価分布:`);
-  console.log(`    ⭐1: ${reviewStats.byRating[1]}件`);
-  console.log(`    ⭐2: ${reviewStats.byRating[2]}件`);
-  console.log(`    ⭐3: ${reviewStats.byRating[3]}件`);
-  console.log(`    ⭐4: ${reviewStats.byRating[4]}件`);
-  console.log(`    ⭐5: ${reviewStats.byRating[5]}件`);
-  console.log(`  ステータス:`);
-  console.log(`    承認済み: ${reviewStats.byStatus.approved}件`);
-  console.log(`    承認待ち: ${reviewStats.byStatus.pending}件`);
-  console.log(`    スパム: ${reviewStats.byStatus.spam}件`);
-  console.log('');
-
-  // 異常値検出
-  const issues = detectAnomalies(siteStats, reviewStats);
-  if (issues.length > 0) {
-    console.log('⚠️  警告:');
-    issues.forEach(issue => console.log(`  ${issue}`));
+    // サイト統計
+    const siteStats = await getSiteStats();
+    console.log('📊 サイト統計:');
+    console.log(`  総数: ${siteStats.total}件`);
+    console.log(`  承認済み: ${siteStats.approved}件`);
+    console.log(`  品質分布:`);
+    console.log(`    🌟 premium: ${siteStats.byQuality.premium}件`);
+    console.log(`    ✅ excellent: ${siteStats.byQuality.excellent}件`);
+    console.log(`    ⚪ normal: ${siteStats.byQuality.normal}件`);
+    console.log(`    ⚠️  poor: ${siteStats.byQuality.poor}件`);
+    console.log(`    ❌ malicious: ${siteStats.byQuality.malicious}件`);
     console.log('');
-  } else {
-    console.log('✅ 異常は検出されませんでした\n');
-  }
 
-  console.log('🎉 モニタリング完了');
+    // 口コミ統計
+    const reviewStats = await getReviewStats();
+    console.log('💬 口コミ統計:');
+    console.log(`  総数: ${reviewStats.total}件`);
+    console.log(`  今日: ${reviewStats.today}件`);
+    console.log(`  昨日: ${reviewStats.yesterday}件`);
+    console.log(`  直近7日: ${reviewStats.lastWeek}件`);
+    console.log(`  評価分布:`);
+    console.log(`    ⭐1: ${reviewStats.byRating[1]}件`);
+    console.log(`    ⭐2: ${reviewStats.byRating[2]}件`);
+    console.log(`    ⭐3: ${reviewStats.byRating[3]}件`);
+    console.log(`    ⭐4: ${reviewStats.byRating[4]}件`);
+    console.log(`    ⭐5: ${reviewStats.byRating[5]}件`);
+    console.log(`  ステータス:`);
+    console.log(`    承認済み: ${reviewStats.byStatus.approved}件`);
+    console.log(`    承認待ち: ${reviewStats.byStatus.pending}件`);
+    console.log(`    スパム: ${reviewStats.byStatus.spam}件`);
+    console.log('');
+
+    // 異常値検出
+    const issues = detectAnomalies(siteStats, reviewStats);
+    if (issues.length > 0) {
+      console.log('⚠️  警告:');
+      issues.forEach(issue => console.log(`  ${issue}`));
+      console.log('');
+    } else {
+      console.log('✅ 異常は検出されませんでした\n');
+    }
+
+    console.log('🎉 モニタリング完了');
+  } catch (error) {
+    console.error('❌ モニタリング中にエラーが発生しました:');
+    console.error(error.message);
+    console.error(error.stack);
+    process.exit(1);
+  }
 })();

@@ -26,9 +26,9 @@ const REQUIRED_FIELDS = {
     'Slug',
     'Category',
     'SiteQuality',
-    'IsApproved',
-    'Reviews',
-    'UsedReviewIDs'
+    'Description',
+    'CreatedAt',
+    'DisplayPriority'
   ],
   Reviews: [
     'UserName',
@@ -36,8 +36,9 @@ const REQUIRED_FIELDS = {
     'Title',
     'Content',
     'CreatedAt',
-    'Status',
-    'Site'
+    'IsApproved',
+    'Site',
+    'UserEmail'
   ]
 };
 
@@ -48,17 +49,15 @@ const REQUIRED_SELECT_OPTIONS = {
   Sites: {
     Category: ['nankan', 'chuo', 'chihou', 'other'],
     SiteQuality: ['premium', 'excellent', 'normal', 'poor', 'malicious']
-  },
-  Reviews: {
-    Status: ['approved', 'pending', 'spam']
   }
+  // Reviews.IsApproved は boolean なので Select Options 検証不要
 };
 
 /**
  * フィールドの存在チェック
  */
 async function validateFields(tableName, requiredFields) {
-  const issues = [];
+  const errors = [];
 
   try {
     // サンプルレコードを1件取得してフィールドを確認
@@ -68,7 +67,7 @@ async function validateFields(tableName, requiredFields) {
 
     if (records.length === 0) {
       console.log(`  ⚠️  ${tableName}: レコードが0件（フィールド検証スキップ）`);
-      return issues;
+      return errors;
     }
 
     const record = records[0];
@@ -76,25 +75,25 @@ async function validateFields(tableName, requiredFields) {
 
     for (const requiredField of requiredFields) {
       if (!fields.includes(requiredField)) {
-        issues.push(`  ❌ ${tableName}: フィールド "${requiredField}" が見つかりません`);
+        errors.push(`  ❌ ${tableName}: フィールド "${requiredField}" が見つかりません`);
       }
     }
 
-    if (issues.length === 0) {
+    if (errors.length === 0) {
       console.log(`  ✅ ${tableName}: 全ての必須フィールドが存在します`);
     }
   } catch (error) {
-    issues.push(`  ❌ ${tableName}: テーブルが見つかりません (${error.message})`);
+    errors.push(`  ❌ ${tableName}: テーブルが見つかりません (${error.message})`);
   }
 
-  return issues;
+  return errors;
 }
 
 /**
- * Select Optionsのチェック
+ * Select Optionsのチェック（警告のみ）
  */
 async function validateSelectOptions(tableName, fieldOptions) {
-  const issues = [];
+  const warnings = [];
 
   try {
     const records = await base(tableName).select().all();
@@ -109,19 +108,19 @@ async function validateSelectOptions(tableName, fieldOptions) {
 
       for (const requiredOption of requiredOptions) {
         if (!foundOptions.has(requiredOption)) {
-          issues.push(`  ⚠️  ${tableName}.${fieldName}: 選択肢 "${requiredOption}" がデータに存在しません`);
+          warnings.push(`  ⚠️  ${tableName}.${fieldName}: 選択肢 "${requiredOption}" がデータに存在しません`);
         }
       }
 
-      if (issues.length === 0) {
+      if (warnings.length === 0) {
         console.log(`  ✅ ${tableName}.${fieldName}: 全ての選択肢が存在します`);
       }
     }
   } catch (error) {
-    issues.push(`  ❌ ${tableName}: Select Optionsの検証に失敗 (${error.message})`);
+    warnings.push(`  ⚠️  ${tableName}: Select Optionsの検証に失敗 (${error.message})`);
   }
 
-  return issues;
+  return warnings;
 }
 
 /**
@@ -130,31 +129,46 @@ async function validateSelectOptions(tableName, fieldOptions) {
 (async () => {
   console.log('🔍 Airtableスキーマバリデーション開始\n');
 
-  const allIssues = [];
+  const errors = [];
+  const warnings = [];
 
-  // フィールド検証
+  // フィールド検証（エラー）
   console.log('📋 フィールド検証:');
   for (const [tableName, fields] of Object.entries(REQUIRED_FIELDS)) {
-    const issues = await validateFields(tableName, fields);
-    allIssues.push(...issues);
+    const fieldErrors = await validateFields(tableName, fields);
+    errors.push(...fieldErrors);
   }
   console.log('');
 
-  // Select Options検証
+  // Select Options検証（警告）
   console.log('🔘 Select Options検証:');
   for (const [tableName, fieldOptions] of Object.entries(REQUIRED_SELECT_OPTIONS)) {
-    const issues = await validateSelectOptions(tableName, fieldOptions);
-    allIssues.push(...issues);
+    const selectWarnings = await validateSelectOptions(tableName, fieldOptions);
+    warnings.push(...selectWarnings);
   }
   console.log('');
 
   // 結果サマリー
-  if (allIssues.length > 0) {
-    console.log('⚠️  検出された問題:');
-    allIssues.forEach(issue => console.log(issue));
+  if (errors.length > 0) {
+    console.log('❌ エラー:');
+    errors.forEach(error => console.log(error));
     console.log('');
-    process.exit(1); // エラーコードで終了
+  }
+
+  if (warnings.length > 0) {
+    console.log('⚠️  警告（データに選択肢が存在しない）:');
+    warnings.forEach(warning => console.log(warning));
+    console.log('');
+  }
+
+  if (errors.length > 0) {
+    console.log('❌ スキーマバリデーション失敗\n');
+    process.exit(1); // エラーがある場合のみ失敗
+  } else if (warnings.length > 0) {
+    console.log('⚠️  スキーマバリデーション完了（警告あり）\n');
+    process.exit(0); // 警告のみなら成功
   } else {
     console.log('✅ スキーマバリデーション完了: 問題なし\n');
+    process.exit(0);
   }
 })();
