@@ -150,14 +150,18 @@ function loadAllReviews() {
     1: loadReviewsFromFile(path.join(reviewsDir, '⭐1（辛口／クレーム寄り）.txt')),
     2: loadReviewsFromFile(path.join(reviewsDir, '⭐2（少し辛口寄り）.txt')),
     3: loadReviewsFromFile(path.join(reviewsDir, '⭐3（ニュートラル）.txt')),
+    '3-positive': loadReviewsFromFile(path.join(reviewsDir, '⭐3（ややポジティブ）.txt')), // excellent/premium用
     4: loadReviewsFromFile(path.join(reviewsDir, '⭐4（少しポジティブ寄り）.txt')),
     5: loadReviewsFromFile(path.join(reviewsDir, '⭐5（premium専用・高評価）.txt'))
   };
 
   console.log('📚 口コミテンプレート読み込み完了:');
-  for (const [star, reviews] of Object.entries(allReviews)) {
-    console.log(`  ⭐${star}: ${reviews.length}件`);
-  }
+  console.log(`  ⭐1: ${allReviews[1].length}件`);
+  console.log(`  ⭐2: ${allReviews[2].length}件`);
+  console.log(`  ⭐3（ニュートラル）: ${allReviews[3].length}件`);
+  console.log(`  ⭐3（ややポジティブ）: ${allReviews['3-positive'].length}件`);
+  console.log(`  ⭐4: ${allReviews[4].length}件`);
+  console.log(`  ⭐5: ${allReviews[5].length}件`);
   console.log('');
 
   return allReviews;
@@ -481,16 +485,24 @@ async function postReview(site, allReviews) {
   // 使用済みIDを確認
   const usedIds = getUsedReviewIds(site.usedReviewIds);
 
+  // 口コミテンプレートキーを決定
+  // excellent/premiumで⭐3の場合は「ややポジティブ」版を使用
+  let reviewKey = stars;
+  if ((type === 'excellent' || type === 'premium') && stars === 3) {
+    reviewKey = '3-positive';
+  }
+
   // 口コミをランダム選択（使用済みを除外）
-  const reviewCandidates = allReviews[stars] || [];
+  const reviewCandidates = allReviews[reviewKey] || [];
   const availableReviews = reviewCandidates
-    .map((r, index) => ({ ...r, id: `star${stars}-${index}` }))
+    .map((r, index) => ({ ...r, id: `${reviewKey}-${index}` }))
     .filter(r => !usedIds.includes(r.id))
     .filter(r => !containsForbiddenWords(r.title + r.content, site.category))
     .filter(r => !containsAutoPostForbiddenWords(r.title + r.content));
 
   if (availableReviews.length === 0) {
-    console.log(`  ⚠️  ${site.name}: 使用可能な⭐${stars}口コミがありません`);
+    const templateType = reviewKey === '3-positive' ? '⭐3（ややポジティブ）' : `⭐${stars}`;
+    console.log(`  ⚠️  ${site.name}: 使用可能な${templateType}口コミがありません`);
     return null;
   }
 
