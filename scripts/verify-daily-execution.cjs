@@ -193,13 +193,13 @@ async function verifyExcellentSiteRatings(todaysReviews, excellentSites) {
         recordError(
           'CRITICAL',
           'RATING_VIOLATION',
-          `優良サイト「${siteName}」に⭐${rating}が投稿されています（⭐3-4のみのはず）`,
+          `優良サイト「${siteName}」に⭐${rating}が投稿されています（⭐3-5のみのはず）`,
           {
             siteName,
             siteId: siteIds[0],
             reviewId: review.id,
             rating,
-            expectedRange: [3, 4],
+            expectedRange: [3, 5],
             reviewTitle: review.fields.Title
           }
         );
@@ -258,26 +258,59 @@ async function verifyMaliciousSiteRatings(todaysReviews, maliciousSites) {
 }
 
 /**
- * 検証5: ⭐5が使用されていないか
+ * 検証5: ⭐5が不正に使用されていないか
+ * v4: premium/excellentサイトでは⭐5を許可
  */
 async function verifyStar5NotUsed(todaysReviews) {
   console.log('5️⃣ ⭐5の使用状況を確認中...\n');
 
   const star5Reviews = todaysReviews.filter(r => r.fields.Rating === 5);
 
-  if (star5Reviews.length > 0) {
+  if (star5Reviews.length === 0) {
+    console.log('   ✅ ⭐5は使用されていません\n');
+    return;
+  }
+
+  // premium/excellentサイトを取得
+  const premiumExcellentSites = await base('Sites').select({
+    filterByFormula: 'AND({IsApproved} = TRUE(), OR({SiteQuality} = "premium", {SiteQuality} = "excellent"))',
+    fields: ['Name', 'SiteQuality']
+  }).all();
+
+  const allowedSiteIds = premiumExcellentSites.map(s => s.id);
+  const violations = [];
+
+  // 各⭐5レビューをチェック
+  for (const review of star5Reviews) {
+    const siteIds = review.fields.Site || [];
+    const isAllowedSite = siteIds.some(id => allowedSiteIds.includes(id));
+
+    if (!isAllowedSite) {
+      const siteName = await getSiteName(siteIds[0]);
+      violations.push({
+        reviewId: review.id,
+        siteName,
+        siteId: siteIds[0]
+      });
+    } else {
+      const siteName = await getSiteName(siteIds[0]);
+      console.log(`   ✅ ${siteName}: ⭐5 (premium/excellent - 許可)`);
+    }
+  }
+
+  if (violations.length > 0) {
     recordError(
       'CRITICAL',
       'RATING_VIOLATION',
-      `⭐5が${star5Reviews.length}件使用されています（⭐5は使用禁止）`,
+      `⭐5が不正に使用されています（premium/excellent以外で${violations.length}件）`,
       {
-        count: star5Reviews.length,
-        reviewIds: star5Reviews.map(r => r.id)
+        count: violations.length,
+        violations: violations.map(v => ({ reviewId: v.reviewId, siteName: v.siteName }))
       }
     );
-    console.log(`   ❌ ⭐5が使用されています: ${star5Reviews.length}件\n`);
+    console.log(`   ❌ ⭐5が不正に使用されています: ${violations.length}件\n`);
   } else {
-    console.log('   ✅ ⭐5は使用されていません\n');
+    console.log(`   ✅ ⭐5は正しく使用されています (${star5Reviews.length}件 - すべてpremium/excellent)\n`);
   }
 }
 
@@ -306,7 +339,7 @@ function generateErrorReport() {
     console.log('   - 今日の口コミは正しく登録されています');
     console.log('   - SiteQualityフィールドは正しく機能しています');
     console.log('   - 評価範囲の違反はありません');
-    console.log('   - ⭐5は使用されていません\n');
+    console.log('   - ⭐5は正しく使用されています（premium/excellentのみ）\n');
     return 0; // 成功
   }
 
@@ -347,7 +380,7 @@ function generateErrorReport() {
   console.log('   - 悪質サイトが"malicious"に設定されているか\n');
 
   console.log('2. スクリプトのバージョンを確認してください:');
-  console.log('   - 最新のrun-daily-reviews-v3.cjsが使用されているか');
+  console.log('   - 最新のrun-daily-reviews-v4.cjsが使用されているか');
   console.log('   - GitHubリポジトリが最新版に更新されているか\n');
 
   console.log('3. 次回の自動実行を確認してください:');
