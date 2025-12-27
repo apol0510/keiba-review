@@ -1,9 +1,9 @@
-name: Daily Monitoring
+name: Weekly Monitoring
 
 on:
   schedule:
-    # 毎日AM9:00 JST（UTC 0:00）
-    - cron: '0 0 * * *'
+    # 毎週月曜AM9:00 JST（UTC 0:00）
+    - cron: '0 0 * * 1'
   workflow_dispatch: # 手動実行も可能
 
 jobs:

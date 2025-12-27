@@ -1,11 +1,10 @@
-name: Auto Screenshot Capture
+name: Weekly Screenshot Capture
 
 on:
-  # 毎日2回実行（午前4時30分・午後4時 JST）
-  # 口コミ投稿（AM4:00）の30分後に実行してAPI衝突を回避
+  # 毎週月曜午前5時（JST）に実行
+  # 口コミ投稿（AM4:00）の1時間後に実行してAPI衝突を回避
   schedule:
-    - cron: '30 19 * * *' # UTC 19:30 = JST 04:30（午前4時30分）
-    - cron: '0 7 * * *'   # UTC 07:00 = JST 16:00（午後4時）
+    - cron: '0 20 * * 0' # UTC 20:00 日曜 = JST 05:00 月曜
 
   # 手動実行も可能
   workflow_dispatch:
