@@ -28,7 +28,7 @@ jobs:
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/dev/check-new-reviews.cjs
+        run: node scripts/check-new-reviews.cjs
 
       - name: Build
         if: steps.check.outputs.should_rebuild == 'true'

@@ -36,7 +36,7 @@ jobs:
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
-          node scripts/production/auto-capture-screenshots.cjs
+          node scripts/auto-capture-screenshots.cjs
 
       - name: Send notification on failure
         if: failure()
