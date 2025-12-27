@@ -635,6 +635,22 @@ gh run view <run-id> --log
 2. Netlify CLIがインストールされているか確認（ワークフロー内で自動インストール）
 3. デプロイ権限があるか確認
 
+**Netlifyデプロイが失敗する場合（NOT_AUTHORIZEDエラー）:**
+- **症状**: ビルド時に `{"error":"NOT_AUTHORIZED","message":"You are not authorized to perform this operation","statusCode":403}` が発生
+- **原因**: Netlifyの環境変数に設定されているAirtable APIキーが古い、または無効になっている
+- **解決方法**:
+  ```bash
+  # Netlifyの環境変数を最新のAPIキーに更新
+  netlify env:set AIRTABLE_API_KEY "your-latest-api-key"
+  netlify env:set AIRTABLE_BASE_ID "your-base-id"
+
+  # デプロイをトリガー（GitHubにpushするか、手動デプロイ）
+  git commit --allow-empty -m "Trigger deploy"
+  git push
+  ```
+- **確認方法**: ローカルで `npm run build` を実行してエラーが出ないか確認
+- **修正日**: 2025-12-27
+
 ## 参照
 
 詳細仕様: `keiba-review-spec.md`
