@@ -52,10 +52,9 @@ keiba-review/
 │   └── reviews-data/       # 口コミテンプレート（534件、6種類）
 ├── .github/workflows/
 │   ├── auto-post-reviews.yml       # 毎日AM4:00
-│   ├── auto-screenshots.yml        # 毎日AM4:30/PM4:00
-│   ├── auto-rebuild-on-review.yml  # 毎日AM6:00
+│   ├── auto-screenshots.yml        # 毎週月曜AM5:00
 │   ├── daily-automation.yml        # 毎週月曜AM3:00
-│   └── daily-monitoring.yml        # 毎日AM9:00（新規）
+│   └── daily-monitoring.yml        # 毎週月曜AM9:00
 ├── public/                 # 静的ファイル
 ├── .env.example            # 環境変数テンプレート
 ├── CHANGELOG.md            # 改善履歴
@@ -211,11 +210,19 @@ RECAPTCHA_SECRET_KEY=xxx
 
 ### GitHub Actions
 
-1. **daily-automation.yml** - 毎日AM3:00（JST）
+1. **auto-post-reviews.yml** - 毎日AM4:00（JST）
+   - サイト品質に応じた口コミ自動投稿
+   - premium/excellent: 毎日100%投稿
+   - normal: 40%投稿、poor: 30%投稿、malicious: 20%投稿
+   - 534件のテンプレートからランダム選択
+   - 投稿後のデータ整合性検証
+
+2. **daily-automation.yml** - 毎週月曜AM3:00（JST）
    - SerpAPIで競馬予想サイトを検索（Google検索結果）
    - 新規サイトをAirtableに登録（Status: pending）
-   - 各サイトに対して口コミを自動生成（1-3件）
-   - Netlifyに自動デプロイ（オプション）
+   - カテゴリ自動判定（nankan/chuo/chihou/other）
+   - 重複チェック（URL完全一致 + ドメイン類似度）
+   - Netlifyに自動デプロイ
 
    **検索キーワード:**
    - 南関競馬 予想サイト
@@ -223,15 +230,15 @@ RECAPTCHA_SECRET_KEY=xxx
    - 中央競馬 予想サイト
    - 競馬予想 的中
 
-   **機能:**
-   - カテゴリ自動判定（nankan/chuo/chihou/other）
-   - 重複チェック（URL完全一致 + ドメイン類似度）
-   - リアルな口コミ自動生成（ランダム評価・ユーザー名）
+3. **auto-screenshots.yml** - 毎週月曜AM5:00（JST）
+   - 全サイトのスクリーンショット自動取得
+   - Cloudinaryに自動アップロード
+   - API衝突回避のため口コミ投稿の1時間後に実行
 
-2. **update-stats.yml** - 毎時0分（※旧ワークフロー）
-   - 全サイトの口コミ統計を再計算
-   - 通常はDBトリガーで自動更新されるため、バックアップ用
-   - ※現在はAirtableのRollup機能で自動計算
+4. **daily-monitoring.yml** - 毎週月曜AM9:00（JST）
+   - Airtableスキーマ検証
+   - サイト統計・口コミ統計の確認
+   - 異常値検出とアラート
 
 ### GitHub Secrets設定
 
@@ -356,11 +363,10 @@ ADMIN_EMAIL              # メール通知用
   - カテゴリ自動判定フィールド
   - 自動リンクフィールド設定
 - [x] GitHub Actionsワークフロー実装
-  - `daily-automation.yml`（毎日AM3:00 JST実行）
+  - `daily-automation.yml`（毎週月曜AM3:00 JST実行）
   - SerpAPIで新規サイト検索
   - Airtableへの自動登録
-  - 口コミ自動生成機能
-  - Netlify自動デプロイ（オプション）
+  - Netlify自動デプロイ
 - [x] GitHub Secrets設定完了
   - `SERPAPI_KEY`
   - `AIRTABLE_API_KEY`
@@ -374,10 +380,10 @@ ADMIN_EMAIL              # メール通知用
   - BaseLayout.astroにGA4トラッキング実装
   - 外部リンククリックイベント測定
   - PUBLIC_GA_ID環境変数対応
-- [x] Daily Monitoringワークフロー実装
+- [x] Weekly Monitoringワークフロー実装
   - `daily-monitoring.cjs` - サイト統計・口コミ統計・異常値検出
   - `schema-validator.cjs` - Airtableスキーマ検証
-  - 毎日AM9:00 JST実行
+  - 毎週月曜AM9:00 JST実行
 - [x] 口コミテンプレート品質向上
   - ⭐3（ややポジティブ）テンプレート追加（90件）
   - excellent/premiumサイト用のポジティブな⭐3評価
@@ -593,11 +599,11 @@ node scripts/fetch-keiba-sites.js
 ### GitHub Actionsワークフロー
 
 **daily-automation.yml の動作:**
-1. 毎日AM3:00（JST）に自動実行
+1. 毎週月曜AM3:00（JST）に自動実行
 2. SerpAPIで競馬予想サイトを検索
 3. 新規サイトをAirtableに登録（Status: pending）
-4. 各サイトに対して口コミを自動生成（1-3件）
-5. Netlifyに自動デプロイ（オプション）
+4. カテゴリ自動判定（nankan/chuo/chihou/other）
+5. Netlifyに自動デプロイ
 
 **手動実行方法:**
 ```bash
