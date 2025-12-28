@@ -27,14 +27,14 @@ jobs:
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/schema-validator.cjs
+        run: node scripts/production/schema-validator.cjs
         continue-on-error: true  # スキーマエラーでも続行
 
       - name: Run daily monitoring
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: node scripts/daily-monitoring.cjs
+        run: node scripts/production/daily-monitoring.cjs
 
       - name: Summary
         if: success()

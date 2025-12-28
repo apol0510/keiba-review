@@ -22,10 +22,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install puppeteer airtable cloudinary
+        run: npm ci
 
       - name: Run screenshot capture
         env:
@@ -34,8 +34,7 @@ jobs:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-        run: |
-          node scripts/auto-capture-screenshots.cjs
+        run: node scripts/production/auto-capture-screenshots.cjs
 
       - name: Send notification on failure
         if: failure()
